@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:background="@color/bg">
+
+    <TextView
+        android:id="@+id/splash_logo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="◈ JOX3 TV"
+        android:textSize="52sp"
+        android:textStyle="bold"
+        android:textColor="@color/accent"
+        android:letterSpacing="0.08"
+        android:shadowColor="@color/accent"
+        android:shadowDx="0"
+        android:shadowDy="0"
+        android:shadowRadius="24"/>
+
+    <TextView
+        android:id="@+id/splash_tagline"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Live  ·  Películas  ·  Series"
+        android:textSize="14sp"
+        android:textColor="@color/muted"
+        android:layout_marginTop="12dp"
+        android:letterSpacing="0.15"/>
+
+</LinearLayout>
