@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg">#0a0e14</color>
+    <color name="bg2">#0d1219</color>
+    <color name="bg3">#121820</color>
+    <color name="border">#1a2535</color>
+    <color name="accent">#00D4FF</color>
+    <color name="accent2">#00FF88</color>
+    <color name="yellow">#FFC107</color>
+    <color name="red">#EF4444</color>
+    <color name="text">#E0F4FF</color>
+    <color name="muted">#4A7A8A</color>
+    <color name="muted2">#7AB8CC</color>
+    <color name="overlay">#CC000000</color>
+</resources>
