@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">JOX3 TV</string>
+    <string name="host_hint">http://servidor:8080 o URL completa</string>
+    <string name="enter">▶  ENTRAR</string>
+    <string name="loading">Cargando…</string>
+    <string name="no_content">Sin contenido</string>
+    <string name="play">▶ Reproducir</string>
+    <string name="search_hint">Buscar canales, películas, series…</string>
+    <string name="tab_live">📺 Live</string>
+    <string name="tab_vod">🎬 Películas</string>
+    <string name="tab_series">🎭 Series</string>
+    <string name="tab_search">🔍 Buscar</string>
+</resources>
