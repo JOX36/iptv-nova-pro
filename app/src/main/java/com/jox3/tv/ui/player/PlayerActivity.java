@@ -13,7 +13,6 @@ import android.util.Rational;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -37,7 +36,7 @@ public class PlayerActivity extends AppCompatActivity {
     private PlayerView playerView;
     private LinearLayout topBar, bottomBar;
     private TextView tvName, tvResolution, tvStatus;
-    private ImageButton btnBack, btnFav, btnPrev, btnNext, btnPip;
+    private TextView btnBack, btnFav;
 
     private com.jox3.tv.model.MediaItem item;
     private AppPrefs prefs;
@@ -91,11 +90,12 @@ public class PlayerActivity extends AppCompatActivity {
         tvName      = findViewById(R.id.tv_name);
         tvResolution= findViewById(R.id.tv_resolution);
         tvStatus    = findViewById(R.id.tv_status);
-        btnBack     = findViewById(R.id.btn_back);
-        btnFav      = findViewById(R.id.btn_fav);
-        btnPrev     = findViewById(R.id.btn_prev);
-        btnNext     = findViewById(R.id.btn_next);
-        btnPip      = findViewById(R.id.btn_pip);
+        btnBack = findViewById(R.id.btn_back);
+        btnFav  = findViewById(R.id.btn_fav);
+        Button btnPrev = findViewById(R.id.btn_prev);
+        Button btnNext = findViewById(R.id.btn_next);
+        Button btnPip  = findViewById(R.id.btn_pip);
+        btnStop  = findViewById(R.id.btn_stop);
 
         tvName.setText(item.name);
         updateFavBtn();
@@ -205,9 +205,7 @@ public class PlayerActivity extends AppCompatActivity {
     }
 
     private void updateFavBtn() {
-        btnFav.setImageResource(prefs.isFav(item.favKey()) ?
-            android.R.drawable.btn_star_big_on :
-            android.R.drawable.btn_star_big_off);
+        btnFav.setText(prefs.isFav(item.favKey()) ? "⭐" : "☆");
     }
 
     private void enterPip() {
