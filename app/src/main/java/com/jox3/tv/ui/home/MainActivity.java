@@ -81,12 +81,12 @@ public class MainActivity extends AppCompatActivity {
         tvAccount.setText(state.account.displayHost());
         tvAccount.setOnClickListener(v -> goLogin());
 
-        // Boton hamburguesa abre drawer
         findViewById(R.id.btn_menu).setOnClickListener(v -> {
-            if (drawerLayout.isDrawerOpen(findViewById(R.id.sidebar)))
+            View sidebar = findViewById(R.id.sidebar);
+            if (drawerLayout.isDrawerOpen(sidebar))
                 drawerLayout.closeDrawers();
             else
-                drawerLayout.openDrawer(findViewById(R.id.sidebar));
+                drawerLayout.openDrawer(sidebar);
         });
 
         // Sidebar tabs
@@ -151,7 +151,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showHome() {
-        // Mostrar historial reciente como home
         List<MediaItem> hist = prefs.history();
         if (!hist.isEmpty()) mediaAdapter.setItems(hist);
     }
@@ -236,7 +235,9 @@ public class MainActivity extends AppCompatActivity {
     private void showFavs() {
         List<MediaItem> all = new ArrayList<>();
         for (Category c : state.cats(currentType)) if (c.loaded) all.addAll(c.items);
-        mediaAdapter.setItems(all.stream().filter(i -> prefs.isFav(i.favKey())).collect(Collectors.toList()));
+        mediaAdapter.setItems(all.stream()
+            .filter(i -> prefs.isFav(i.favKey()))
+            .collect(Collectors.toList()));
     }
 
     private void showHistory() {
@@ -248,11 +249,16 @@ public class MainActivity extends AppCompatActivity {
     private void openItem(MediaItem item) {
         prefs.addHistory(item);
         state.current = item;
+        Intent intent;
         if (item.type.equals(MediaItem.LIVE)) {
             state.channelList = selectedCat != null ? selectedCat.items : new ArrayList<>();
             state.channelIdx  = state.channelList.indexOf(item);
+            intent = new Intent(this, PlayerActivity.class);
+        } else if (item.type.equals(MediaItem.VOD)) {
+            intent = new Intent(this, com.jox3.tv.ui.vod.VodDetailActivity.class);
+        } else {
+            intent = new Intent(this, com.jox3.tv.ui.series.SeriesActivity.class);
         }
-        Intent intent = new Intent(this, PlayerActivity.class);
         intent.putExtra("item", item);
         startActivity(intent);
         overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
