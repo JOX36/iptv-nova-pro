@@ -4,7 +4,6 @@
     android:layout_height="match_parent"
     android:background="#000">
 
-    <!-- Video -->
     <androidx.media3.ui.PlayerView
         android:id="@+id/player_view"
         android:layout_width="match_parent"
@@ -17,20 +16,19 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="top"
-        android:background="@color/overlay"
+        android:background="#CC000000"
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:padding="10dp"
         android:visibility="gone">
 
-        <!-- Back -->
         <TextView
             android:id="@+id/btn_back"
             android:layout_width="36dp"
             android:layout_height="36dp"
             android:gravity="center"
-            android:text="✕"
-            android:textSize="18sp"
+            android:text="X"
+            android:textSize="16sp"
             android:textColor="#FFFFFF"
             android:background="?attr/selectableItemBackgroundBorderless"/>
 
@@ -70,7 +68,6 @@
             android:textStyle="bold"
             android:paddingEnd="8dp"/>
 
-        <!-- Favorito -->
         <TextView
             android:id="@+id/btn_fav"
             android:layout_width="36dp"
@@ -89,7 +86,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
-        android:background="@color/overlay"
+        android:background="#CC000000"
         android:orientation="horizontal"
         android:gravity="center"
         android:padding="10dp"
@@ -99,7 +96,7 @@
             android:id="@+id/btn_prev"
             android:layout_width="wrap_content"
             android:layout_height="36dp"
-            android:text="⏮"
+            android:text="&#9194;"
             android:textSize="18sp"
             android:backgroundTint="@color/bg3"
             android:textColor="@color/accent"
@@ -109,7 +106,7 @@
             android:id="@+id/btn_next"
             android:layout_width="wrap_content"
             android:layout_height="36dp"
-            android:text="⏭"
+            android:text="&#9197;"
             android:textSize="18sp"
             android:backgroundTint="@color/bg3"
             android:textColor="@color/accent"
