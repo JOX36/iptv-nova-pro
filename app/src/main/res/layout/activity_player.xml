@@ -23,13 +23,16 @@
         android:padding="10dp"
         android:visibility="gone">
 
-        <ImageButton
+        <!-- Back -->
+        <TextView
             android:id="@+id/btn_back"
             android:layout_width="36dp"
             android:layout_height="36dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_media_previous"
-            android:tint="#FFFFFF"/>
+            android:gravity="center"
+            android:text="✕"
+            android:textSize="18sp"
+            android:textColor="#FFFFFF"
+            android:background="?attr/selectableItemBackgroundBorderless"/>
 
         <LinearLayout
             android:layout_width="0dp"
@@ -67,12 +70,16 @@
             android:textStyle="bold"
             android:paddingEnd="8dp"/>
 
-        <ImageButton
+        <!-- Favorito -->
+        <TextView
             android:id="@+id/btn_fav"
             android:layout_width="36dp"
             android:layout_height="36dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/btn_star_big_off"/>
+            android:gravity="center"
+            android:text="☆"
+            android:textSize="20sp"
+            android:textColor="#FFD700"
+            android:background="?attr/selectableItemBackgroundBorderless"/>
 
     </LinearLayout>
 
