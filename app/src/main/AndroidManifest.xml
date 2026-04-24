@@ -11,7 +11,6 @@
         android:theme="@style/Theme.JOX3TV"
         android:usesCleartextTraffic="true">
 
-        <!-- Splash -->
         <activity
             android:name=".ui.setup.SplashActivity"
             android:exported="true"
@@ -23,20 +22,17 @@
             </intent-filter>
         </activity>
 
-        <!-- Login -->
         <activity
             android:name=".ui.setup.LoginActivity"
             android:exported="false"
             android:screenOrientation="portrait"
             android:windowSoftInputMode="adjustResize"/>
 
-        <!-- Main (catálogo) -->
         <activity
             android:name=".ui.home.MainActivity"
             android:exported="false"
             android:launchMode="singleTop"/>
 
-        <!-- Reproductor -->
         <activity
             android:name=".ui.player.PlayerActivity"
             android:exported="false"
@@ -46,7 +42,12 @@
             android:supportsPictureInPicture="true"
             android:windowSoftInputMode="stateHidden"/>
 
-            <activity
+        <activity
+            android:name=".ui.vod.VodDetailActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"/>
+
+        <activity
             android:name=".ui.series.SeriesActivity"
             android:exported="false"
             android:screenOrientation="portrait"/>
