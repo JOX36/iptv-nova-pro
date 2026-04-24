@@ -14,6 +14,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.LinearLayout;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -37,6 +38,7 @@ public class PlayerActivity extends AppCompatActivity {
     private LinearLayout topBar, bottomBar;
     private TextView tvName, tvResolution, tvStatus;
     private TextView btnBack, btnFav;
+    private android.widget.Button btnPrev, btnNext, btnPip, btnStop;
 
     private com.jox3.tv.model.MediaItem item;
     private AppPrefs prefs;
@@ -92,10 +94,10 @@ public class PlayerActivity extends AppCompatActivity {
         tvStatus    = findViewById(R.id.tv_status);
         btnBack = findViewById(R.id.btn_back);
         btnFav  = findViewById(R.id.btn_fav);
-        Button btnPrev = findViewById(R.id.btn_prev);
-        Button btnNext = findViewById(R.id.btn_next);
-        Button btnPip  = findViewById(R.id.btn_pip);
-        btnStop  = findViewById(R.id.btn_stop);
+        btnPrev = findViewById(R.id.btn_prev);
+        btnNext = findViewById(R.id.btn_next);
+        btnPip  = findViewById(R.id.btn_pip);
+        btnStop = findViewById(R.id.btn_stop);
 
         tvName.setText(item.name);
         updateFavBtn();
