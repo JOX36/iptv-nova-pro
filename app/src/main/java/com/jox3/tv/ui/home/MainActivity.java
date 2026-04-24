@@ -11,6 +11,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -37,12 +38,10 @@ import java.util.stream.Collectors;
 
 public class MainActivity extends AppCompatActivity {
 
-    // Estado
     private String currentType = MediaItem.LIVE;
-    private String currentSideTab = "cats";
     private Category selectedCat;
 
-    // UI
+    private DrawerLayout drawerLayout;
     private CategoryAdapter catAdapter;
     private MediaAdapter mediaAdapter;
     private RecyclerView rvCats, rvContent;
@@ -51,11 +50,10 @@ public class MainActivity extends AppCompatActivity {
     private TextInputEditText etSearch;
     private TextView tvAccount;
 
-    // Datos
     private AppPrefs prefs;
     private AppState state;
-    private ExecutorService exec = Executors.newFixedThreadPool(3);
-    private Handler mainHandler = new Handler(Looper.getMainLooper());
+    private final ExecutorService exec = Executors.newFixedThreadPool(3);
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,15 +63,14 @@ public class MainActivity extends AppCompatActivity {
         prefs = new AppPrefs(this);
         state = AppState.get();
 
-        if (state.account == null) {
-            goLogin(); return;
-        }
+        if (state.account == null) { goLogin(); return; }
 
         initViews();
         loadCats(currentType);
     }
 
     private void initViews() {
+        drawerLayout = findViewById(R.id.drawer_layout);
         progressTop  = findViewById(R.id.progress_top);
         swipeRefresh = findViewById(R.id.swipe_refresh);
         etSearch     = findViewById(R.id.et_search);
@@ -81,14 +78,30 @@ public class MainActivity extends AppCompatActivity {
         rvCats       = findViewById(R.id.rv_categories);
         rvContent    = findViewById(R.id.rv_content);
 
-        tvAccount.setText("👤 " + state.account.displayHost());
+        tvAccount.setText(state.account.displayHost());
         tvAccount.setOnClickListener(v -> goLogin());
 
+        // Boton hamburguesa abre drawer
+        findViewById(R.id.btn_menu).setOnClickListener(v -> {
+            if (drawerLayout.isDrawerOpen(findViewById(R.id.sidebar)))
+                drawerLayout.closeDrawers();
+            else
+                drawerLayout.openDrawer(findViewById(R.id.sidebar));
+        });
+
         // Sidebar tabs
-        setupSideTabs();
+        TextView tabCats = findViewById(R.id.stab_cats);
+        TextView tabFavs = findViewById(R.id.stab_favs);
+        TextView tabHist = findViewById(R.id.stab_hist);
+        tabCats.setOnClickListener(v -> { showCats();    highlight(tabCats, tabFavs, tabHist); });
+        tabFavs.setOnClickListener(v -> { showFavs();    highlight(tabFavs, tabCats, tabHist); });
+        tabHist.setOnClickListener(v -> { showHistory(); highlight(tabHist, tabCats, tabFavs); });
 
         // Category list
-        catAdapter = new CategoryAdapter(cat -> loadItems(cat));
+        catAdapter = new CategoryAdapter(cat -> {
+            loadItems(cat);
+            drawerLayout.closeDrawers();
+        });
         rvCats.setLayoutManager(new LinearLayoutManager(this));
         rvCats.setAdapter(catAdapter);
 
@@ -97,25 +110,26 @@ public class MainActivity extends AppCompatActivity {
             @Override public void onClick(MediaItem item) { openItem(item); }
             @Override public void onFav(MediaItem item, boolean isFav) {
                 Toast.makeText(MainActivity.this,
-                    isFav ? "⭐ Agregado a favoritos" : "Eliminado de favoritos",
+                    isFav ? "Agregado a favoritos" : "Eliminado de favoritos",
                     Toast.LENGTH_SHORT).show();
             }
         });
+        rvContent.setLayoutManager(new GridLayoutManager(this, 2));
         rvContent.setAdapter(mediaAdapter);
-        updateGrid();
 
         // Bottom nav
         BottomNavigationView nav = findViewById(R.id.bottom_nav);
         nav.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
-            if      (id == R.id.nav_live)   switchType(MediaItem.LIVE);
+            if      (id == R.id.nav_home)   showHome();
+            else if (id == R.id.nav_live)   switchType(MediaItem.LIVE);
             else if (id == R.id.nav_vod)    switchType(MediaItem.VOD);
             else if (id == R.id.nav_series) switchType(MediaItem.SERIES);
             else if (id == R.id.nav_search) etSearch.requestFocus();
             return true;
         });
 
-        // Búsqueda
+        // Busqueda
         etSearch.addTextChangedListener(new TextWatcher() {
             public void beforeTextChanged(CharSequence s, int a, int b, int c) {}
             public void onTextChanged(CharSequence s, int a, int b, int c) { doSearch(s.toString()); }
@@ -126,26 +140,20 @@ public class MainActivity extends AppCompatActivity {
         swipeRefresh.setColorSchemeColors(getColor(R.color.accent));
         swipeRefresh.setProgressBackgroundColorSchemeColor(getColor(R.color.bg2));
         swipeRefresh.setOnRefreshListener(() -> {
-            if (selectedCat != null) {
-                selectedCat.loaded = false;
-                loadItems(selectedCat);
-            }
+            if (selectedCat != null) { selectedCat.loaded = false; loadItems(selectedCat); }
             swipeRefresh.setRefreshing(false);
         });
     }
 
-    private void setupSideTabs() {
-        TextView tabCats = findViewById(R.id.stab_cats);
-        TextView tabFavs = findViewById(R.id.stab_favs);
-        TextView tabHist = findViewById(R.id.stab_hist);
-        tabCats.setOnClickListener(v -> { currentSideTab = "cats"; showCats();   highlightTab(tabCats, tabFavs, tabHist); });
-        tabFavs.setOnClickListener(v -> { currentSideTab = "favs"; showFavs();   highlightTab(tabFavs, tabCats, tabHist); });
-        tabHist.setOnClickListener(v -> { currentSideTab = "hist"; showHistory(); highlightTab(tabHist, tabCats, tabFavs); });
-    }
-
-    private void highlightTab(TextView active, TextView... others) {
+    private void highlight(TextView active, TextView... others) {
         active.setTextColor(getColor(R.color.accent));
         for (TextView t : others) t.setTextColor(getColor(R.color.muted));
+    }
+
+    private void showHome() {
+        // Mostrar historial reciente como home
+        List<MediaItem> hist = prefs.history();
+        if (!hist.isEmpty()) mediaAdapter.setItems(hist);
     }
 
     private void switchType(String type) {
@@ -156,16 +164,9 @@ public class MainActivity extends AppCompatActivity {
             @Override public void onFav(MediaItem item, boolean isFav) {}
         });
         rvContent.setAdapter(mediaAdapter);
-        updateGrid();
         loadCats(type);
     }
 
-    private void updateGrid() {
-        int cols = currentType.equals(MediaItem.LIVE) ? 2 : 2;
-        rvContent.setLayoutManager(new GridLayoutManager(this, cols));
-    }
-
-    // ── Cargar categorías ──
     private void loadCats(String type) {
         List<Category> cached = state.cats(type);
         if (!cached.isEmpty()) {
@@ -187,25 +188,16 @@ public class MainActivity extends AppCompatActivity {
                     if (!cats.isEmpty()) loadItems(cats.get(0));
                 });
             } catch (Exception e) {
-                mainHandler.post(() -> {
-                    showProgress(false);
-                    toast("Error: " + e.getMessage());
-                });
+                mainHandler.post(() -> { showProgress(false); toast("Error: " + e.getMessage()); });
             }
         });
     }
 
-    // ── Cargar items de categoría ──
     private void loadItems(Category cat) {
         selectedCat = cat;
-        // Seleccionar en sidebar
         List<Category> cats = state.cats(currentType);
         catAdapter.setSelected(cats.indexOf(cat));
-
-        if (cat.loaded) {
-            mediaAdapter.setItems(cat.items);
-            return;
-        }
+        if (cat.loaded) { mediaAdapter.setItems(cat.items); return; }
         showProgress(true);
         exec.execute(() -> {
             try {
@@ -221,76 +213,45 @@ public class MainActivity extends AppCompatActivity {
                     mediaAdapter.setItems(items);
                 });
             } catch (Exception e) {
-                mainHandler.post(() -> {
-                    showProgress(false);
-                    toast("Error: " + e.getMessage());
-                });
+                mainHandler.post(() -> { showProgress(false); toast("Error: " + e.getMessage()); });
             }
         });
     }
 
-    // ── Búsqueda ──
     private void doSearch(String q) {
         if (q.trim().isEmpty()) {
-            if (selectedCat != null && selectedCat.loaded)
-                mediaAdapter.setItems(selectedCat.items);
+            if (selectedCat != null && selectedCat.loaded) mediaAdapter.setItems(selectedCat.items);
             return;
         }
         String ql = q.toLowerCase();
-        // Buscar en todos los items cargados
         List<MediaItem> all = new ArrayList<>();
-        for (Category c : state.cats(currentType))
-            if (c.loaded) all.addAll(c.items);
-        List<MediaItem> results = all.stream()
+        for (Category c : state.cats(currentType)) if (c.loaded) all.addAll(c.items);
+        mediaAdapter.setItems(all.stream()
             .filter(i -> i.name != null && i.name.toLowerCase().contains(ql))
-            .collect(Collectors.toList());
-        mediaAdapter.setItems(results);
+            .collect(Collectors.toList()));
     }
 
-    // ── Sidebar: Favs / Historial ──
-    private void showCats() {
-        catAdapter.setItems(state.cats(currentType));
-    }
+    private void showCats() { catAdapter.setItems(state.cats(currentType)); }
 
     private void showFavs() {
         List<MediaItem> all = new ArrayList<>();
-        for (Category c : state.cats(currentType))
-            if (c.loaded) all.addAll(c.items);
-        List<MediaItem> favs = all.stream()
-            .filter(i -> prefs.isFav(i.favKey()))
-            .collect(Collectors.toList());
-        // Mostrar favs en sidebar como lista simple
-        mediaAdapter.setItems(favs);
+        for (Category c : state.cats(currentType)) if (c.loaded) all.addAll(c.items);
+        mediaAdapter.setItems(all.stream().filter(i -> prefs.isFav(i.favKey())).collect(Collectors.toList()));
     }
 
     private void showHistory() {
-        List<MediaItem> hist = prefs.history().stream()
+        mediaAdapter.setItems(prefs.history().stream()
             .filter(i -> i.type != null && i.type.equals(currentType))
-            .collect(Collectors.toList());
-        mediaAdapter.setItems(hist);
+            .collect(Collectors.toList()));
     }
 
-    // ── Abrir item ──
     private void openItem(MediaItem item) {
         prefs.addHistory(item);
         state.current = item;
-
-        if (item.type.equals(MediaItem.SERIES)) {
-            // Abrir detalle de series
-            Intent intent = new Intent(this, PlayerActivity.class);
-            intent.putExtra("item", item);
-            startActivity(intent);
-            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
-            return;
-        }
-
         if (item.type.equals(MediaItem.LIVE)) {
-            // Pasar lista de canales para navegación
-            List<MediaItem> channelList = selectedCat != null ? selectedCat.items : new ArrayList<>();
-            state.channelList = channelList;
-            state.channelIdx  = channelList.indexOf(item);
+            state.channelList = selectedCat != null ? selectedCat.items : new ArrayList<>();
+            state.channelIdx  = state.channelList.indexOf(item);
         }
-
         Intent intent = new Intent(this, PlayerActivity.class);
         intent.putExtra("item", item);
         startActivity(intent);
@@ -302,12 +263,6 @@ public class MainActivity extends AppCompatActivity {
         if (show) progressTop.setIndeterminate(true);
     }
 
-    private void toast(String msg) {
-        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
-    }
-
-    private void goLogin() {
-        startActivity(new Intent(this, LoginActivity.class));
-        finish();
-    }
+    private void toast(String msg) { Toast.makeText(this, msg, Toast.LENGTH_SHORT).show(); }
+    private void goLogin() { startActivity(new Intent(this, LoginActivity.class)); finish(); }
 }
