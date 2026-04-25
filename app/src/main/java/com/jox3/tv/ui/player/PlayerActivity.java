@@ -1,6 +1,7 @@
 package com.jox3.tv.ui.player;
 
 import android.annotation.SuppressLint;
+import android.content.Intent;
 import android.app.PictureInPictureParams;
 import android.content.res.Configuration;
 import android.media.AudioManager;
@@ -98,18 +99,44 @@ public class PlayerActivity extends AppCompatActivity {
         if (isTv) showBars();
     }
 
+
+    // Cuando se abre desde PiP — cerrar PiP y reproducir nuevo item
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        MediaItem newItem = (MediaItem) intent.getSerializableExtra("item");
+        if (newItem != null) {
+            // Salir de PiP si estamos en PiP
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInPictureInPictureMode()) {
+                isInPip = false;
+            }
+            item = newItem;
+            tvName.setText(item.name);
+            tvResolution.setVisibility(View.GONE);
+            updateFavBtn();
+            initPlayer();
+            showBars();
+        }
+    }
+
     private void setFullscreen() {
         getWindow().addFlags(
             WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON |
             WindowManager.LayoutParams.FLAG_FULLSCREEN |
             WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
-        getWindow().getDecorView().setSystemUiVisibility(
-            View.SYSTEM_UI_FLAG_FULLSCREEN |
-            View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
-            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY |
-            View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
-            View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
-            View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+        // Extender a borde a borde ignorando insets
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            getWindow().setDecorFitsSystemWindows(false);
+        } else {
+            getWindow().getDecorView().setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_FULLSCREEN |
+                View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
+                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY |
+                View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
+                View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+        }
     }
 
     @SuppressLint("ClickableViewAccessibility")
