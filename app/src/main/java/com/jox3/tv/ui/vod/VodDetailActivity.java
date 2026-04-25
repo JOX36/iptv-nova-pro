@@ -99,6 +99,7 @@ public class VodDetailActivity extends AppCompatActivity {
     }
 
     private void updateUI(MediaItem m) {
+        if (isDestroyed() || isFinishing()) return;
         TextView tvPlot     = findViewById(R.id.tv_plot);
         TextView tvGenre    = findViewById(R.id.tv_genre);
         TextView tvCast     = findViewById(R.id.tv_cast);
@@ -130,6 +131,7 @@ public class VodDetailActivity extends AppCompatActivity {
     }
 
     private void loadRecommendations() {
+        if (isDestroyed() || isFinishing()) return;
         List<MediaItem> all = new ArrayList<>();
         for (Category c : state.vodCats)
             if (c.loaded) all.addAll(c.items);
@@ -201,7 +203,8 @@ public class VodDetailActivity extends AppCompatActivity {
             MediaItem m = items.get(pos);
             h.tvName.setText(m.name);
             if (m.thumb() != null && !m.thumb().isEmpty())
-                Glide.with(h.itemView).load(m.thumb()).centerCrop().into(h.ivCover);
+                Glide.with(h.itemView.getContext().getApplicationContext())
+                    .load(m.thumb()).centerCrop().into(h.ivCover);
             h.itemView.setOnClickListener(v -> listener.onClick(m));
         }
         @Override public int getItemCount() { return items.size(); }
