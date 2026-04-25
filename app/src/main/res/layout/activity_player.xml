@@ -4,11 +4,13 @@
     android:layout_height="match_parent"
     android:background="#000">
 
+    <!-- Video sin padding -->
     <androidx.media3.ui.PlayerView
         android:id="@+id/player_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#000"/>
+        android:background="#000"
+        android:padding="0dp"/>
 
     <!-- Top bar -->
     <LinearLayout
@@ -19,13 +21,16 @@
         android:background="#CC000000"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="10dp"
+        android:paddingStart="0dp"
+        android:paddingEnd="8dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
         android:visibility="gone">
 
         <TextView
             android:id="@+id/btn_back"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
             android:gravity="center"
             android:text="X"
             android:textSize="16sp"
@@ -36,12 +41,11 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:orientation="vertical"
-            android:paddingStart="10dp">
+            android:orientation="vertical">
 
             <TextView
                 android:id="@+id/tv_name"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textColor="#FFFFFF"
                 android:textSize="14sp"
@@ -53,7 +57,7 @@
                 android:id="@+id/tv_resolution"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@color/accent"
+                android:textColor="#00D4FF"
                 android:textSize="10sp"
                 android:visibility="gone"/>
 
@@ -63,73 +67,124 @@
             android:id="@+id/tv_status"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="@color/red"
+            android:textColor="#EF4444"
             android:textSize="11sp"
             android:textStyle="bold"
             android:paddingEnd="8dp"/>
 
         <TextView
             android:id="@+id/btn_fav"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
             android:gravity="center"
             android:text="☆"
-            android:textSize="20sp"
+            android:textSize="22sp"
             android:textColor="#FFD700"
             android:background="?attr/selectableItemBackgroundBorderless"/>
 
     </LinearLayout>
 
-    <!-- Bottom bar -->
+    <!-- Bottom bar con seekbar -->
     <LinearLayout
         android:id="@+id/bottom_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
         android:background="#CC000000"
-        android:orientation="horizontal"
-        android:gravity="center"
-        android:padding="10dp"
+        android:orientation="vertical"
+        android:paddingStart="0dp"
+        android:paddingEnd="0dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
         android:visibility="gone">
 
-        <Button
-            android:id="@+id/btn_prev"
-            android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:text="&#9194;"
-            android:textSize="18sp"
-            android:backgroundTint="@color/bg3"
-            android:textColor="@color/accent"
-            android:layout_marginEnd="6dp"/>
+        <!-- SeekBar VOD -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingBottom="4dp">
 
-        <Button
-            android:id="@+id/btn_next"
-            android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:text="&#9197;"
-            android:textSize="18sp"
-            android:backgroundTint="@color/bg3"
-            android:textColor="@color/accent"
-            android:layout_marginEnd="16dp"/>
+            <TextView
+                android:id="@+id/tv_position"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#FFFFFF"
+                android:textSize="11sp"
+                android:text="0:00"
+                android:layout_marginEnd="8dp"/>
 
-        <Button
-            android:id="@+id/btn_pip"
-            android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:text="PiP"
-            android:textSize="11sp"
-            android:backgroundTint="@color/bg3"
-            android:textColor="@color/muted2"
-            android:layout_marginEnd="6dp"/>
+            <SeekBar
+                android:id="@+id/seek_bar"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:progressTint="#00D4FF"
+                android:thumbTint="#00D4FF"/>
 
-        <Button
-            android:id="@+id/btn_stop"
-            android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:text="Detener"
-            android:textSize="11sp"
-            android:backgroundTint="#55EF4444"
-            android:textColor="@color/red"/>
+            <TextView
+                android:id="@+id/tv_duration"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#FFFFFF"
+                android:textSize="11sp"
+                android:text="0:00"
+                android:layout_marginStart="8dp"/>
+
+        </LinearLayout>
+
+        <!-- Botones -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp">
+
+            <Button
+                android:id="@+id/btn_prev"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:text="&#9194;"
+                android:textSize="16sp"
+                android:backgroundTint="#1a2535"
+                android:textColor="#00D4FF"
+                android:layout_marginEnd="6dp"/>
+
+            <Button
+                android:id="@+id/btn_next"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:text="&#9197;"
+                android:textSize="16sp"
+                android:backgroundTint="#1a2535"
+                android:textColor="#00D4FF"
+                android:layout_marginEnd="16dp"/>
+
+            <Button
+                android:id="@+id/btn_pip"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:text="PiP"
+                android:textSize="11sp"
+                android:backgroundTint="#1a2535"
+                android:textColor="#7AB8CC"
+                android:layout_marginEnd="6dp"/>
+
+            <Button
+                android:id="@+id/btn_stop"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:text="Detener"
+                android:textSize="11sp"
+                android:backgroundTint="#55EF4444"
+                android:textColor="#EF4444"/>
+
+        </LinearLayout>
 
     </LinearLayout>
 
