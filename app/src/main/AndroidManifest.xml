@@ -40,6 +40,7 @@
             android:launchMode="singleTop"
             android:resizeableActivity="true"
             android:supportsPictureInPicture="true"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
             android:windowSoftInputMode="stateHidden"/>
 
         <activity
