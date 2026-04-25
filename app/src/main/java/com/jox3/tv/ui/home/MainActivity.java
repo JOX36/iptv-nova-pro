@@ -40,6 +40,7 @@ public class MainActivity extends AppCompatActivity {
 
     private String currentType = MediaItem.LIVE;
     private Category selectedCat;
+    private boolean isSearchMode = false;
 
     private DrawerLayout drawerLayout;
     private CategoryAdapter catAdapter;
@@ -49,11 +50,14 @@ public class MainActivity extends AppCompatActivity {
     private SwipeRefreshLayout swipeRefresh;
     private TextInputEditText etSearch;
     private TextView tvAccount;
+    private TextView tvSearchResults;
 
     private AppPrefs prefs;
     private AppState state;
     private final ExecutorService exec = Executors.newFixedThreadPool(3);
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private final Handler searchHandler = new Handler(Looper.getMainLooper());
+    private Runnable searchRunnable;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,42 +74,51 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initViews() {
-        drawerLayout = findViewById(R.id.drawer_layout);
-        progressTop  = findViewById(R.id.progress_top);
-        swipeRefresh = findViewById(R.id.swipe_refresh);
-        etSearch     = findViewById(R.id.et_search);
-        tvAccount    = findViewById(R.id.tv_account);
-        rvCats       = findViewById(R.id.rv_categories);
-        rvContent    = findViewById(R.id.rv_content);
+        drawerLayout    = findViewById(R.id.drawer_layout);
+        progressTop     = findViewById(R.id.progress_top);
+        swipeRefresh    = findViewById(R.id.swipe_refresh);
+        etSearch        = findViewById(R.id.et_search);
+        tvAccount       = findViewById(R.id.tv_account);
+        rvCats          = findViewById(R.id.rv_categories);
+        rvContent       = findViewById(R.id.rv_content);
+        tvSearchResults = findViewById(R.id.tv_search_results);
 
         tvAccount.setText(state.account.displayHost());
         tvAccount.setOnClickListener(v -> goLogin());
 
-        findViewById(R.id.btn_menu).setOnClickListener(v -> {
-            View sidebar = findViewById(R.id.sidebar);
-            if (drawerLayout.isDrawerOpen(sidebar))
-                drawerLayout.closeDrawers();
-            else
-                drawerLayout.openDrawer(sidebar);
-        });
+        // Hamburger menu
+        View btnMenu = findViewById(R.id.btn_menu);
+        if (btnMenu != null) {
+            btnMenu.setOnClickListener(v -> {
+                View sidebar = findViewById(R.id.sidebar);
+                if (sidebar != null) {
+                    if (drawerLayout.isDrawerOpen(sidebar)) drawerLayout.closeDrawers();
+                    else drawerLayout.openDrawer(sidebar);
+                }
+            });
+        }
 
         // Sidebar tabs
         TextView tabCats = findViewById(R.id.stab_cats);
         TextView tabFavs = findViewById(R.id.stab_favs);
         TextView tabHist = findViewById(R.id.stab_hist);
-        tabCats.setOnClickListener(v -> { showCats();    highlight(tabCats, tabFavs, tabHist); });
-        tabFavs.setOnClickListener(v -> { showFavs();    highlight(tabFavs, tabCats, tabHist); });
-        tabHist.setOnClickListener(v -> { showHistory(); highlight(tabHist, tabCats, tabFavs); });
+        if (tabCats != null) tabCats.setOnClickListener(v -> { showCats();    highlight(tabCats, tabFavs, tabHist); });
+        if (tabFavs != null) tabFavs.setOnClickListener(v -> { showFavs();    highlight(tabFavs, tabCats, tabHist); });
+        if (tabHist != null) tabHist.setOnClickListener(v -> { showHistory(); highlight(tabHist, tabCats, tabFavs); });
 
-        // Category list
+        // Categories
         catAdapter = new CategoryAdapter(cat -> {
+            isSearchMode = false;
+            if (tvSearchResults != null) tvSearchResults.setVisibility(View.GONE);
             loadItems(cat);
             drawerLayout.closeDrawers();
         });
-        rvCats.setLayoutManager(new LinearLayoutManager(this));
-        rvCats.setAdapter(catAdapter);
+        if (rvCats != null) {
+            rvCats.setLayoutManager(new LinearLayoutManager(this));
+            rvCats.setAdapter(catAdapter);
+        }
 
-        // Content grid
+        // Content
         mediaAdapter = new MediaAdapter(currentType, prefs, new MediaAdapter.Listener() {
             @Override public void onClick(MediaItem item) { openItem(item); }
             @Override public void onFav(MediaItem item, boolean isFav) {
@@ -114,55 +127,98 @@ public class MainActivity extends AppCompatActivity {
                     Toast.LENGTH_SHORT).show();
             }
         });
-        rvContent.setLayoutManager(new GridLayoutManager(this, 2));
-        rvContent.setAdapter(mediaAdapter);
+        if (rvContent != null) {
+            rvContent.setLayoutManager(new GridLayoutManager(this, 2));
+            rvContent.setAdapter(mediaAdapter);
+        }
 
         // Bottom nav
         BottomNavigationView nav = findViewById(R.id.bottom_nav);
-        nav.setOnItemSelectedListener(item -> {
-            int id = item.getItemId();
-            if      (id == R.id.nav_home)   showHome();
-            else if (id == R.id.nav_live)   switchType(MediaItem.LIVE);
-            else if (id == R.id.nav_vod)    switchType(MediaItem.VOD);
-            else if (id == R.id.nav_series) switchType(MediaItem.SERIES);
-            else if (id == R.id.nav_search) etSearch.requestFocus();
-            return true;
-        });
+        if (nav != null) {
+            nav.setOnItemSelectedListener(item -> {
+                int id = item.getItemId();
+                if (id == R.id.nav_home) {
+                    isSearchMode = false;
+                    showHome();
+                } else if (id == R.id.nav_live) {
+                    isSearchMode = false;
+                    switchType(MediaItem.LIVE);
+                } else if (id == R.id.nav_vod) {
+                    isSearchMode = false;
+                    switchType(MediaItem.VOD);
+                } else if (id == R.id.nav_series) {
+                    isSearchMode = false;
+                    switchType(MediaItem.SERIES);
+                } else if (id == R.id.nav_search) {
+                    isSearchMode = true;
+                    if (etSearch != null) etSearch.requestFocus();
+                }
+                return true;
+            });
+        }
 
-        // Busqueda
-        etSearch.addTextChangedListener(new TextWatcher() {
-            public void beforeTextChanged(CharSequence s, int a, int b, int c) {}
-            public void onTextChanged(CharSequence s, int a, int b, int c) { doSearch(s.toString()); }
-            public void afterTextChanged(Editable s) {}
-        });
+        // Búsqueda mejorada — debounce 400ms
+        if (etSearch != null) {
+            etSearch.addTextChangedListener(new TextWatcher() {
+                public void beforeTextChanged(CharSequence s, int a, int b, int c) {}
+                public void onTextChanged(CharSequence s, int a, int b, int c) {
+                    searchHandler.removeCallbacks(searchRunnable);
+                    String q = s.toString().trim();
+                    if (q.isEmpty()) {
+                        isSearchMode = false;
+                        if (tvSearchResults != null) tvSearchResults.setVisibility(View.GONE);
+                        if (selectedCat != null && selectedCat.loaded)
+                            mediaAdapter.setItems(selectedCat.items);
+                        return;
+                    }
+                    isSearchMode = true;
+                    searchRunnable = () -> doSearch(q);
+                    searchHandler.postDelayed(searchRunnable, 400);
+                }
+                public void afterTextChanged(Editable s) {}
+            });
+        }
 
         // Pull to refresh
-        swipeRefresh.setColorSchemeColors(getColor(R.color.accent));
-        swipeRefresh.setProgressBackgroundColorSchemeColor(getColor(R.color.bg2));
-        swipeRefresh.setOnRefreshListener(() -> {
-            if (selectedCat != null) { selectedCat.loaded = false; loadItems(selectedCat); }
-            swipeRefresh.setRefreshing(false);
-        });
+        if (swipeRefresh != null) {
+            swipeRefresh.setColorSchemeColors(getColor(R.color.accent));
+            swipeRefresh.setProgressBackgroundColorSchemeColor(getColor(R.color.bg2));
+            swipeRefresh.setOnRefreshListener(() -> {
+                if (!isSearchMode && selectedCat != null) {
+                    selectedCat.loaded = false;
+                    loadItems(selectedCat);
+                }
+                swipeRefresh.setRefreshing(false);
+            });
+        }
     }
 
     private void highlight(TextView active, TextView... others) {
+        if (active == null) return;
         active.setTextColor(getColor(R.color.accent));
-        for (TextView t : others) t.setTextColor(getColor(R.color.muted));
+        for (TextView t : others) if (t != null) t.setTextColor(getColor(R.color.muted));
     }
 
     private void showHome() {
         List<MediaItem> hist = prefs.history();
-        if (!hist.isEmpty()) mediaAdapter.setItems(hist);
+        if (!hist.isEmpty()) {
+            mediaAdapter.setItems(hist);
+            if (tvSearchResults != null) {
+                tvSearchResults.setText("Vistos recientemente — " + hist.size());
+                tvSearchResults.setVisibility(View.VISIBLE);
+            }
+        }
     }
 
     private void switchType(String type) {
         currentType = type;
         selectedCat = null;
+        if (tvSearchResults != null) tvSearchResults.setVisibility(View.GONE);
         mediaAdapter = new MediaAdapter(type, prefs, new MediaAdapter.Listener() {
             @Override public void onClick(MediaItem item) { openItem(item); }
             @Override public void onFav(MediaItem item, boolean isFav) {}
         });
-        rvContent.setAdapter(mediaAdapter);
+        if (rvContent != null) rvContent.setAdapter(mediaAdapter);
         loadCats(type);
     }
 
@@ -194,8 +250,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void loadItems(Category cat) {
         selectedCat = cat;
-        List<Category> cats = state.cats(currentType);
-        catAdapter.setSelected(cats.indexOf(cat));
+        catAdapter.setSelected(state.cats(currentType).indexOf(cat));
         if (cat.loaded) { mediaAdapter.setItems(cat.items); return; }
         showProgress(true);
         exec.execute(() -> {
@@ -217,17 +272,51 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    // Búsqueda mejorada — busca en todas las categorías cargadas de TODOS los tipos
     private void doSearch(String q) {
-        if (q.trim().isEmpty()) {
-            if (selectedCat != null && selectedCat.loaded) mediaAdapter.setItems(selectedCat.items);
-            return;
-        }
         String ql = q.toLowerCase();
-        List<MediaItem> all = new ArrayList<>();
-        for (Category c : state.cats(currentType)) if (c.loaded) all.addAll(c.items);
-        mediaAdapter.setItems(all.stream()
-            .filter(i -> i.name != null && i.name.toLowerCase().contains(ql))
-            .collect(Collectors.toList()));
+        List<MediaItem> liveResults   = new ArrayList<>();
+        List<MediaItem> vodResults    = new ArrayList<>();
+        List<MediaItem> seriesResults = new ArrayList<>();
+
+        for (Category c : state.liveCats)   if (c.loaded)
+            liveResults.addAll(c.items.stream()
+                .filter(i -> i.name != null && i.name.toLowerCase().contains(ql))
+                .collect(Collectors.toList()));
+
+        for (Category c : state.vodCats)    if (c.loaded)
+            vodResults.addAll(c.items.stream()
+                .filter(i -> i.name != null && i.name.toLowerCase().contains(ql))
+                .collect(Collectors.toList()));
+
+        for (Category c : state.seriesCats) if (c.loaded)
+            seriesResults.addAll(c.items.stream()
+                .filter(i -> i.name != null && i.name.toLowerCase().contains(ql))
+                .collect(Collectors.toList()));
+
+        // Combinar todos los resultados con separadores
+        List<MediaItem> combined = new ArrayList<>();
+        combined.addAll(liveResults);
+        combined.addAll(vodResults);
+        combined.addAll(seriesResults);
+
+        int total = combined.size();
+
+        // Mostrar resumen de resultados
+        if (tvSearchResults != null) {
+            if (total == 0) {
+                tvSearchResults.setText("Sin resultados para \"" + q + "\"");
+            } else {
+                StringBuilder sb = new StringBuilder();
+                if (!liveResults.isEmpty())   sb.append("Live: ").append(liveResults.size()).append("  ");
+                if (!vodResults.isEmpty())    sb.append("Peliculas: ").append(vodResults.size()).append("  ");
+                if (!seriesResults.isEmpty()) sb.append("Series: ").append(seriesResults.size());
+                tvSearchResults.setText(sb.toString().trim());
+            }
+            tvSearchResults.setVisibility(View.VISIBLE);
+        }
+
+        mediaAdapter.setItems(combined);
     }
 
     private void showCats() { catAdapter.setItems(state.cats(currentType)); }
@@ -265,6 +354,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showProgress(boolean show) {
+        if (progressTop == null) return;
         progressTop.setVisibility(show ? View.VISIBLE : View.GONE);
         if (show) progressTop.setIndeterminate(true);
     }
