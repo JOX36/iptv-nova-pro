@@ -40,7 +40,7 @@
             android:launchMode="singleTop"
             android:resizeableActivity="true"
             android:supportsPictureInPicture="true"
-            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
+            android:theme="@style/Theme.JOX3TV.Player"
             android:windowSoftInputMode="stateHidden"/>
 
         <activity
