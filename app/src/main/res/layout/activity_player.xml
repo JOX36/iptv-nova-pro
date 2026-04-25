@@ -2,9 +2,9 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#000">
+    android:background="#000"
+    android:fitsSystemWindows="false">
 
-    <!-- Video sin padding -->
     <androidx.media3.ui.PlayerView
         android:id="@+id/player_view"
         android:layout_width="match_parent"
@@ -84,7 +84,7 @@
 
     </LinearLayout>
 
-    <!-- Bottom bar con seekbar -->
+    <!-- Bottom bar -->
     <LinearLayout
         android:id="@+id/bottom_bar"
         android:layout_width="match_parent"
@@ -98,7 +98,6 @@
         android:paddingBottom="8dp"
         android:visibility="gone">
 
-        <!-- SeekBar VOD -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -136,7 +135,6 @@
 
         </LinearLayout>
 
-        <!-- Botones -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
