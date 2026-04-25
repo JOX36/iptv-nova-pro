@@ -362,12 +362,17 @@ public class PlayerActivity extends AppCompatActivity {
         handler.removeCallbacksAndMessages(null);
         saveProgress();
         if (player != null) {
-            player.stop();      // Para inmediatamente
-            player.release();   // Libera recursos y audio
+            player.setPlayWhenReady(false);
+            player.stop();
+            player.clearMediaItems();
+            player.release();
             player = null;
         }
-        if (!isFinishing()) finish();
-        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+        if (playerView != null) playerView.setPlayer(null);
+        if (!isFinishing()) {
+            finish();
+            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+        }
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -453,7 +458,15 @@ public class PlayerActivity extends AppCompatActivity {
 
     @Override protected void onPause() {
         super.onPause();
-        if (!isInPip && player != null) player.pause();
+        // Verificar PiP con API del sistema, no con nuestra variable
+        // porque onPause se llama ANTES de onPictureInPictureModeChanged
+        boolean inPipNow = false;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            inPipNow = isInPictureInPictureMode();
+        }
+        if (!inPipNow && !playerReleased && player != null) {
+            player.pause();
+        }
     }
 
     @Override protected void onResume() {
@@ -473,7 +486,11 @@ public class PlayerActivity extends AppCompatActivity {
     }
 
     @Override public void onBackPressed() {
-        if (isInPip) { moveTaskToBack(false); return; }
+        // NO llamar super — evita doble finish
+        if (isInPip || (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInPictureInPictureMode())) {
+            moveTaskToBack(false);
+            return;
+        }
         exitPlayer();
     }
 }
