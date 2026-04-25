@@ -49,8 +49,7 @@ public class MainActivity extends AppCompatActivity {
     private LinearProgressIndicator progressTop;
     private SwipeRefreshLayout swipeRefresh;
     private TextInputEditText etSearch;
-    private TextView tvAccount;
-    private TextView tvSearchResults;
+    private TextView tvAccount, tvSearchResults;
 
     private AppPrefs prefs;
     private AppState state;
@@ -63,12 +62,9 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
         prefs = new AppPrefs(this);
         state = AppState.get();
-
         if (state.account == null) { goLogin(); return; }
-
         initViews();
         loadCats(currentType);
     }
@@ -86,19 +82,15 @@ public class MainActivity extends AppCompatActivity {
         tvAccount.setText(state.account.displayHost());
         tvAccount.setOnClickListener(v -> goLogin());
 
-        // Hamburger menu
         View btnMenu = findViewById(R.id.btn_menu);
-        if (btnMenu != null) {
-            btnMenu.setOnClickListener(v -> {
-                View sidebar = findViewById(R.id.sidebar);
-                if (sidebar != null) {
-                    if (drawerLayout.isDrawerOpen(sidebar)) drawerLayout.closeDrawers();
-                    else drawerLayout.openDrawer(sidebar);
-                }
-            });
-        }
+        if (btnMenu != null) btnMenu.setOnClickListener(v -> {
+            View sidebar = findViewById(R.id.sidebar);
+            if (sidebar != null) {
+                if (drawerLayout.isDrawerOpen(sidebar)) drawerLayout.closeDrawers();
+                else drawerLayout.openDrawer(sidebar);
+            }
+        });
 
-        // Sidebar tabs
         TextView tabCats = findViewById(R.id.stab_cats);
         TextView tabFavs = findViewById(R.id.stab_favs);
         TextView tabHist = findViewById(R.id.stab_hist);
@@ -106,19 +98,15 @@ public class MainActivity extends AppCompatActivity {
         if (tabFavs != null) tabFavs.setOnClickListener(v -> { showFavs();    highlight(tabFavs, tabCats, tabHist); });
         if (tabHist != null) tabHist.setOnClickListener(v -> { showHistory(); highlight(tabHist, tabCats, tabFavs); });
 
-        // Categories
         catAdapter = new CategoryAdapter(cat -> {
             isSearchMode = false;
             if (tvSearchResults != null) tvSearchResults.setVisibility(View.GONE);
             loadItems(cat);
             drawerLayout.closeDrawers();
         });
-        if (rvCats != null) {
-            rvCats.setLayoutManager(new LinearLayoutManager(this));
-            rvCats.setAdapter(catAdapter);
-        }
+        rvCats.setLayoutManager(new LinearLayoutManager(this));
+        rvCats.setAdapter(catAdapter);
 
-        // Content
         mediaAdapter = new MediaAdapter(currentType, prefs, new MediaAdapter.Listener() {
             @Override public void onClick(MediaItem item) { openItem(item); }
             @Override public void onFav(MediaItem item, boolean isFav) {
@@ -127,70 +115,48 @@ public class MainActivity extends AppCompatActivity {
                     Toast.LENGTH_SHORT).show();
             }
         });
-        if (rvContent != null) {
-            rvContent.setLayoutManager(new GridLayoutManager(this, 2));
-            rvContent.setAdapter(mediaAdapter);
-        }
+        rvContent.setLayoutManager(new GridLayoutManager(this, 2));
+        rvContent.setAdapter(mediaAdapter);
 
-        // Bottom nav
         BottomNavigationView nav = findViewById(R.id.bottom_nav);
-        if (nav != null) {
-            nav.setOnItemSelectedListener(item -> {
-                int id = item.getItemId();
-                if (id == R.id.nav_home) {
-                    isSearchMode = false;
-                    showHome();
-                } else if (id == R.id.nav_live) {
-                    isSearchMode = false;
-                    switchType(MediaItem.LIVE);
-                } else if (id == R.id.nav_vod) {
-                    isSearchMode = false;
-                    switchType(MediaItem.VOD);
-                } else if (id == R.id.nav_series) {
-                    isSearchMode = false;
-                    switchType(MediaItem.SERIES);
-                } else if (id == R.id.nav_search) {
-                    isSearchMode = true;
-                    if (etSearch != null) etSearch.requestFocus();
-                }
-                return true;
-            });
-        }
+        if (nav != null) nav.setOnItemSelectedListener(item -> {
+            int id = item.getItemId();
+            if      (id == R.id.nav_home)   { isSearchMode = false; showHome(); }
+            else if (id == R.id.nav_live)   { isSearchMode = false; switchType(MediaItem.LIVE); }
+            else if (id == R.id.nav_vod)    { isSearchMode = false; switchType(MediaItem.VOD); }
+            else if (id == R.id.nav_series) { isSearchMode = false; switchType(MediaItem.SERIES); }
+            else if (id == R.id.nav_search) { isSearchMode = true;  etSearch.requestFocus(); }
+            return true;
+        });
 
-        // Búsqueda mejorada — debounce 400ms
-        if (etSearch != null) {
-            etSearch.addTextChangedListener(new TextWatcher() {
-                public void beforeTextChanged(CharSequence s, int a, int b, int c) {}
-                public void onTextChanged(CharSequence s, int a, int b, int c) {
-                    searchHandler.removeCallbacks(searchRunnable);
-                    String q = s.toString().trim();
-                    if (q.isEmpty()) {
-                        isSearchMode = false;
-                        if (tvSearchResults != null) tvSearchResults.setVisibility(View.GONE);
-                        if (selectedCat != null && selectedCat.loaded)
-                            mediaAdapter.setItems(selectedCat.items);
-                        return;
-                    }
-                    isSearchMode = true;
-                    searchRunnable = () -> doSearch(q);
-                    searchHandler.postDelayed(searchRunnable, 400);
+        etSearch.addTextChangedListener(new TextWatcher() {
+            public void beforeTextChanged(CharSequence s, int a, int b, int c) {}
+            public void onTextChanged(CharSequence s, int a, int b, int c) {
+                String q = s.toString().trim();
+                searchHandler.removeCallbacks(searchRunnable);
+                if (q.isEmpty()) {
+                    isSearchMode = false;
+                    if (tvSearchResults != null) tvSearchResults.setVisibility(View.GONE);
+                    if (selectedCat != null && selectedCat.loaded)
+                        mediaAdapter.setItems(selectedCat.items);
+                    return;
                 }
-                public void afterTextChanged(Editable s) {}
-            });
-        }
+                isSearchMode = true;
+                searchRunnable = () -> doSearch(q);
+                searchHandler.postDelayed(searchRunnable, 500);
+            }
+            public void afterTextChanged(Editable s) {}
+        });
 
-        // Pull to refresh
-        if (swipeRefresh != null) {
-            swipeRefresh.setColorSchemeColors(getColor(R.color.accent));
-            swipeRefresh.setProgressBackgroundColorSchemeColor(getColor(R.color.bg2));
-            swipeRefresh.setOnRefreshListener(() -> {
-                if (!isSearchMode && selectedCat != null) {
-                    selectedCat.loaded = false;
-                    loadItems(selectedCat);
-                }
-                swipeRefresh.setRefreshing(false);
-            });
-        }
+        swipeRefresh.setColorSchemeColors(getColor(R.color.accent));
+        swipeRefresh.setProgressBackgroundColorSchemeColor(getColor(R.color.bg2));
+        swipeRefresh.setOnRefreshListener(() -> {
+            if (!isSearchMode && selectedCat != null) {
+                selectedCat.loaded = false;
+                loadItems(selectedCat);
+            }
+            swipeRefresh.setRefreshing(false);
+        });
     }
 
     private void highlight(TextView active, TextView... others) {
@@ -202,9 +168,13 @@ public class MainActivity extends AppCompatActivity {
     private void showHome() {
         List<MediaItem> hist = prefs.history();
         if (!hist.isEmpty()) {
+            // Marcar progreso en items del historial
+            for (MediaItem m : hist) {
+                m.isFav = prefs.isFav(m.favKey());
+            }
             mediaAdapter.setItems(hist);
             if (tvSearchResults != null) {
-                tvSearchResults.setText("Vistos recientemente — " + hist.size());
+                tvSearchResults.setText("Vistos recientemente");
                 tvSearchResults.setVisibility(View.VISIBLE);
             }
         }
@@ -218,7 +188,7 @@ public class MainActivity extends AppCompatActivity {
             @Override public void onClick(MediaItem item) { openItem(item); }
             @Override public void onFav(MediaItem item, boolean isFav) {}
         });
-        if (rvContent != null) rvContent.setAdapter(mediaAdapter);
+        rvContent.setAdapter(mediaAdapter);
         loadCats(type);
     }
 
@@ -272,51 +242,85 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    // Búsqueda mejorada — busca en todas las categorías cargadas de TODOS los tipos
+    // Búsqueda global — carga categorías de todos los tipos antes de buscar
     private void doSearch(String q) {
+        showProgress(true);
         String ql = q.toLowerCase();
-        List<MediaItem> liveResults   = new ArrayList<>();
-        List<MediaItem> vodResults    = new ArrayList<>();
-        List<MediaItem> seriesResults = new ArrayList<>();
+        exec.execute(() -> {
+            try {
+                // Cargar categorías si no están cargadas
+                if (state.liveCats.isEmpty()) state.liveCats.addAll(state.api.getLiveCats());
+                if (state.vodCats.isEmpty())  state.vodCats.addAll(state.api.getVodCats());
+                if (state.seriesCats.isEmpty()) state.seriesCats.addAll(state.api.getSeriesCats());
 
-        for (Category c : state.liveCats)   if (c.loaded)
-            liveResults.addAll(c.items.stream()
-                .filter(i -> i.name != null && i.name.toLowerCase().contains(ql))
-                .collect(Collectors.toList()));
+                // Cargar primera categoría de cada tipo si no hay items
+                ensureItemsLoaded(state.liveCats,   MediaItem.LIVE);
+                ensureItemsLoaded(state.vodCats,    MediaItem.VOD);
+                ensureItemsLoaded(state.seriesCats, MediaItem.SERIES);
 
-        for (Category c : state.vodCats)    if (c.loaded)
-            vodResults.addAll(c.items.stream()
-                .filter(i -> i.name != null && i.name.toLowerCase().contains(ql))
-                .collect(Collectors.toList()));
+                // Buscar en todo
+                List<MediaItem> liveR = searchIn(state.liveCats,   ql);
+                List<MediaItem> vodR  = searchIn(state.vodCats,    ql);
+                List<MediaItem> serR  = searchIn(state.seriesCats, ql);
 
-        for (Category c : state.seriesCats) if (c.loaded)
-            seriesResults.addAll(c.items.stream()
-                .filter(i -> i.name != null && i.name.toLowerCase().contains(ql))
-                .collect(Collectors.toList()));
+                List<MediaItem> all = new ArrayList<>();
+                all.addAll(liveR);
+                all.addAll(vodR);
+                all.addAll(serR);
 
-        // Combinar todos los resultados con separadores
-        List<MediaItem> combined = new ArrayList<>();
-        combined.addAll(liveResults);
-        combined.addAll(vodResults);
-        combined.addAll(seriesResults);
+                String summary = buildSummary(liveR.size(), vodR.size(), serR.size(), q);
 
-        int total = combined.size();
-
-        // Mostrar resumen de resultados
-        if (tvSearchResults != null) {
-            if (total == 0) {
-                tvSearchResults.setText("Sin resultados para \"" + q + "\"");
-            } else {
-                StringBuilder sb = new StringBuilder();
-                if (!liveResults.isEmpty())   sb.append("Live: ").append(liveResults.size()).append("  ");
-                if (!vodResults.isEmpty())    sb.append("Peliculas: ").append(vodResults.size()).append("  ");
-                if (!seriesResults.isEmpty()) sb.append("Series: ").append(seriesResults.size());
-                tvSearchResults.setText(sb.toString().trim());
+                mainHandler.post(() -> {
+                    showProgress(false);
+                    mediaAdapter.setItems(all);
+                    if (tvSearchResults != null) {
+                        tvSearchResults.setText(summary);
+                        tvSearchResults.setVisibility(View.VISIBLE);
+                    }
+                });
+            } catch (Exception e) {
+                mainHandler.post(() -> {
+                    showProgress(false);
+                    toast("Error buscando: " + e.getMessage());
+                });
             }
-            tvSearchResults.setVisibility(View.VISIBLE);
-        }
+        });
+    }
 
-        mediaAdapter.setItems(combined);
+    private void ensureItemsLoaded(List<Category> cats, String type) throws Exception {
+        if (cats.isEmpty()) return;
+        boolean hasLoaded = cats.stream().anyMatch(c -> c.loaded && !c.items.isEmpty());
+        if (!hasLoaded) {
+            // Cargar todas las categorías en paralelo (máx 5 a la vez)
+            for (int i = 0; i < Math.min(cats.size(), 5); i++) {
+                Category c = cats.get(i);
+                if (!c.loaded) {
+                    if      (type.equals(MediaItem.LIVE))   c.items = state.api.getLiveStreams(c.id);
+                    else if (type.equals(MediaItem.VOD))    c.items = state.api.getVodStreams(c.id);
+                    else                                    c.items = state.api.getSeries(c.id);
+                    c.loaded = true;
+                }
+            }
+        }
+    }
+
+    private List<MediaItem> searchIn(List<Category> cats, String q) {
+        List<MediaItem> result = new ArrayList<>();
+        for (Category c : cats)
+            if (c.loaded)
+                result.addAll(c.items.stream()
+                    .filter(i -> i.name != null && i.name.toLowerCase().contains(q))
+                    .collect(Collectors.toList()));
+        return result;
+    }
+
+    private String buildSummary(int live, int vod, int series, String q) {
+        if (live + vod + series == 0) return "Sin resultados para \"" + q + "\"";
+        StringBuilder sb = new StringBuilder();
+        if (live   > 0) sb.append("Live: ").append(live).append("  ");
+        if (vod    > 0) sb.append("Peliculas: ").append(vod).append("  ");
+        if (series > 0) sb.append("Series: ").append(series);
+        return sb.toString().trim();
     }
 
     private void showCats() { catAdapter.setItems(state.cats(currentType)); }
@@ -324,9 +328,7 @@ public class MainActivity extends AppCompatActivity {
     private void showFavs() {
         List<MediaItem> all = new ArrayList<>();
         for (Category c : state.cats(currentType)) if (c.loaded) all.addAll(c.items);
-        mediaAdapter.setItems(all.stream()
-            .filter(i -> prefs.isFav(i.favKey()))
-            .collect(Collectors.toList()));
+        mediaAdapter.setItems(all.stream().filter(i -> prefs.isFav(i.favKey())).collect(Collectors.toList()));
     }
 
     private void showHistory() {
