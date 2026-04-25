@@ -15,6 +15,7 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -39,6 +40,8 @@ public class PlayerActivity extends AppCompatActivity {
     private LinearLayout topBar, bottomBar;
     private TextView tvName, tvResolution, tvStatus, btnBack, btnFav;
     private Button btnPrev, btnNext, btnPip, btnStop;
+    private SeekBar seekBar;
+    private TextView tvPosition, tvDuration;
 
     private MediaItem item;
     private AppPrefs prefs;
@@ -47,6 +50,7 @@ public class PlayerActivity extends AppCompatActivity {
     private boolean barsVisible = false;
     private boolean isTv = false;
     private boolean isInPip = false;
+    private boolean seekBarTracking = false;
     private int retryCount = 0;
 
     private AudioManager audioManager;
@@ -55,6 +59,14 @@ public class PlayerActivity extends AppCompatActivity {
     private int gestStartVol;
     private float gestStartBright;
     private long seekStartPos;
+
+    // Runnable para actualizar seekbar
+    private final Runnable seekUpdateRunnable = new Runnable() {
+        @Override public void run() {
+            updateSeekBar();
+            handler.postDelayed(this, 500);
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -114,8 +126,14 @@ public class PlayerActivity extends AppCompatActivity {
         btnNext      = findViewById(R.id.btn_next);
         btnPip       = findViewById(R.id.btn_pip);
         btnStop      = findViewById(R.id.btn_stop);
+        seekBar      = findViewById(R.id.seek_bar);
+        tvPosition   = findViewById(R.id.tv_position);
+        tvDuration   = findViewById(R.id.tv_duration);
 
+        // Sin barras negras — fit sin padding
         playerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FIT);
+        playerView.setPadding(0, 0, 0, 0);
+
         tvName.setText(item.name);
         updateFavBtn();
 
@@ -127,8 +145,38 @@ public class PlayerActivity extends AppCompatActivity {
         btnPip.setOnClickListener(v -> enterPip());
 
         boolean isLive = item.type.equals(MediaItem.LIVE);
+        boolean isVod  = item.type.equals(MediaItem.VOD);
+
         btnPrev.setVisibility(isLive ? View.VISIBLE : View.GONE);
         btnNext.setVisibility(isLive ? View.VISIBLE : View.GONE);
+
+        // SeekBar solo en VOD
+        if (seekBar != null) {
+            seekBar.setVisibility(isVod ? View.VISIBLE : View.GONE);
+            if (tvPosition != null) tvPosition.setVisibility(isVod ? View.VISIBLE : View.GONE);
+            if (tvDuration != null) tvDuration.setVisibility(isVod ? View.VISIBLE : View.GONE);
+
+            seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                @Override public void onProgressChanged(SeekBar sb, int progress, boolean fromUser) {
+                    if (fromUser && player != null) {
+                        long pos = (long)(progress / 100.0 * player.getDuration());
+                        if (tvPosition != null) tvPosition.setText(formatTime(pos));
+                    }
+                }
+                @Override public void onStartTrackingTouch(SeekBar sb) {
+                    seekBarTracking = true;
+                    handler.removeCallbacks(seekUpdateRunnable);
+                }
+                @Override public void onStopTrackingTouch(SeekBar sb) {
+                    seekBarTracking = false;
+                    if (player != null) {
+                        long pos = (long)(sb.getProgress() / 100.0 * player.getDuration());
+                        player.seekTo(pos);
+                    }
+                    handler.post(seekUpdateRunnable);
+                }
+            });
+        }
 
         playerView.setOnClickListener(v -> { if (!isTv && !isInPip) toggleBars(); });
         playerView.setOnTouchListener(this::onTouch);
@@ -155,6 +203,7 @@ public class PlayerActivity extends AppCompatActivity {
         player.prepare();
         player.setPlayWhenReady(true);
 
+        // Reanudar VOD desde donde se dejó
         if (item.type.equals(MediaItem.VOD)) {
             long pos = prefs.getPos(item.id);
             if (pos > 5000) player.seekTo(pos);
@@ -166,8 +215,12 @@ public class PlayerActivity extends AppCompatActivity {
                     setStatus(item.type.equals(MediaItem.LIVE) ? "EN VIVO" : "");
                     retryCount = 0;
                     if (!isTv && !barsVisible) showBars();
+                    if (item.type.equals(MediaItem.VOD))
+                        handler.post(seekUpdateRunnable);
                 }
                 if (s == Player.STATE_BUFFERING) setStatus("Cargando...");
+                if (s == Player.STATE_ENDED)
+                    handler.removeCallbacks(seekUpdateRunnable);
             }
             @Override public void onPlayerError(@NonNull PlaybackException e) {
                 if (item.type.equals(MediaItem.LIVE) && retryCount < 3) {
@@ -190,6 +243,25 @@ public class PlayerActivity extends AppCompatActivity {
                 }
             }
         });
+    }
+
+    private void updateSeekBar() {
+        if (player == null || seekBar == null || seekBarTracking) return;
+        long dur = player.getDuration();
+        long pos = player.getCurrentPosition();
+        if (dur > 0) {
+            seekBar.setProgress((int)(pos * 100 / dur));
+            if (tvPosition != null) tvPosition.setText(formatTime(pos));
+            if (tvDuration != null) tvDuration.setText(formatTime(dur));
+        }
+    }
+
+    private String formatTime(long ms) {
+        long s = ms / 1000;
+        long m = s / 60; s %= 60;
+        long h = m / 60; m %= 60;
+        if (h > 0) return String.format("%d:%02d:%02d", h, m, s);
+        return String.format("%d:%02d", m, s);
     }
 
     private void navigateChannel(int dir) {
@@ -218,6 +290,9 @@ public class PlayerActivity extends AppCompatActivity {
         if (!isTv) {
             handler.removeCallbacksAndMessages(null);
             handler.postDelayed(this::hideBars, 4000);
+            // Reanudar seekbar update
+            if (item.type.equals(MediaItem.VOD))
+                handler.post(seekUpdateRunnable);
         }
     }
 
@@ -251,10 +326,12 @@ public class PlayerActivity extends AppCompatActivity {
         super.onPictureInPictureModeChanged(inPip, conf);
         isInPip = inPip;
         if (!inPip) {
+            // Saliendo de PiP — restaurar
             setFullscreen();
             showBars();
             if (player != null && !player.isPlaying()) player.play();
         }
+        // NO pausar al entrar en PiP
     }
 
     private void saveProgress() {
@@ -263,6 +340,7 @@ public class PlayerActivity extends AppCompatActivity {
     }
 
     private void releasePlayer() {
+        handler.removeCallbacks(seekUpdateRunnable);
         saveProgress();
         if (player != null) { player.release(); player = null; }
     }
@@ -304,7 +382,8 @@ public class PlayerActivity extends AppCompatActivity {
                     WindowManager.LayoutParams lp = getWindow().getAttributes();
                     lp.screenBrightness = bright;
                     getWindow().setAttributes(lp);
-                } else if (gestIsSeek && Math.abs(dx) > Math.abs(dy) && player != null) {
+                } else if (gestIsSeek && Math.abs(dx) > Math.abs(dy) && player != null
+                           && !item.type.equals(MediaItem.LIVE)) {
                     long pos = Math.max(0, Math.min(player.getDuration(),
                         seekStartPos + (long)(dx / w * 120000)));
                     player.seekTo(pos);
@@ -347,8 +426,10 @@ public class PlayerActivity extends AppCompatActivity {
         return super.dispatchKeyEvent(e);
     }
 
+    // ── CLAVE para PiP: NO pausar al entrar en PiP ──
     @Override protected void onPause() {
         super.onPause();
+        // Solo pausar si NO estamos en PiP
         if (!isInPip && player != null) player.pause();
     }
 
@@ -358,11 +439,13 @@ public class PlayerActivity extends AppCompatActivity {
         if (player != null && !isInPip) player.play();
     }
 
-    @Override protected void onStop() { super.onStop(); saveProgress(); }
+    @Override protected void onStop() {
+        super.onStop();
+        saveProgress();
+    }
 
     @Override protected void onDestroy() {
         super.onDestroy();
-        handler.removeCallbacksAndMessages(null);
         releasePlayer();
     }
 
