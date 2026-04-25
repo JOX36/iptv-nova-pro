@@ -157,7 +157,12 @@ public class PlayerActivity extends AppCompatActivity {
         tvPosition   = findViewById(R.id.tv_position);
         tvDuration   = findViewById(R.id.tv_duration);
 
-        playerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FIT);
+        // Live: llenar pantalla completa. VOD: mantener proporción
+        if (item.type.equals(MediaItem.LIVE)) {
+            playerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FILL);
+        } else {
+            playerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FIT);
+        }
         playerView.setPadding(0, 0, 0, 0);
 
         tvName.setText(item.name);
