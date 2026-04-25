@@ -9,7 +9,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -35,6 +34,7 @@ public class VodDetailActivity extends AppCompatActivity {
 
     private MediaItem item;
     private AppPrefs prefs;
+    private AppState state;
     private final ExecutorService exec = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
@@ -44,6 +44,7 @@ public class VodDetailActivity extends AppCompatActivity {
         setContentView(R.layout.activity_vod_detail);
 
         prefs = new AppPrefs(this);
+        state = AppState.get();
         item = (MediaItem) getIntent().getSerializableExtra("item");
         if (item == null) { finish(); return; }
 
@@ -54,11 +55,9 @@ public class VodDetailActivity extends AppCompatActivity {
     private void initViews() {
         TextView tvTitle = findViewById(R.id.tv_title);
         tvTitle.setText(item.name);
-
         ImageView ivCover = findViewById(R.id.iv_cover);
         if (item.thumb() != null && !item.thumb().isEmpty())
             Glide.with(this).load(item.thumb()).centerCrop().into(ivCover);
-
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
         findViewById(R.id.btn_play).setOnClickListener(v -> playVod());
     }
@@ -67,7 +66,7 @@ public class VodDetailActivity extends AppCompatActivity {
         updateUI(item);
         exec.execute(() -> {
             try {
-                MediaItem info = AppState.get().api.getVodInfo(item.id);
+                MediaItem info = state.api.getVodInfo(item.id);
                 if (info.plot     != null && !info.plot.isEmpty())     item.plot     = info.plot;
                 if (info.genre    != null && !info.genre.isEmpty())    item.genre    = info.genre;
                 if (info.cast     != null && !info.cast.isEmpty())     item.cast     = info.cast;
@@ -75,12 +74,30 @@ public class VodDetailActivity extends AppCompatActivity {
                 if (info.duration != null && !info.duration.isEmpty()) item.duration = info.duration;
                 if (info.rating   != null && !info.rating.isEmpty())   item.rating   = info.rating;
                 if (info.cover    != null && !info.cover.isEmpty())    item.cover    = info.cover;
+
+                // Cargar categorías VOD si no están cargadas para recomendaciones
+                if (state.vodCats.isEmpty()) {
+                    List<Category> cats = state.api.getVodCats();
+                    state.vodCats.addAll(cats);
+                }
+
+                // Cargar al menos la primera categoría si ninguna tiene items
+                boolean hasItems = state.vodCats.stream().anyMatch(c -> c.loaded);
+                if (!hasItems && !state.vodCats.isEmpty()) {
+                    Category first = state.vodCats.get(0);
+                    first.items = state.api.getVodStreams(first.id);
+                    first.loaded = true;
+                }
+
                 mainHandler.post(() -> {
                     updateUI(item);
                     loadRecommendations();
                 });
             } catch (Exception e) {
-                mainHandler.post(() -> loadRecommendations());
+                mainHandler.post(() -> {
+                    updateUI(item);
+                    loadRecommendations();
+                });
             }
         });
     }
@@ -119,19 +136,28 @@ public class VodDetailActivity extends AppCompatActivity {
     }
 
     private void loadRecommendations() {
-        if (item.genre == null || item.genre.isEmpty()) return;
-
-        // Buscar en todas las categorías VOD cargadas
         List<MediaItem> all = new ArrayList<>();
-        for (Category c : AppState.get().vodCats)
+        for (Category c : state.vodCats)
             if (c.loaded) all.addAll(c.items);
 
-        String genre = item.genre.toLowerCase();
-        List<MediaItem> recs = all.stream()
-            .filter(m -> !m.id.equals(item.id))
-            .filter(m -> m.genre != null && m.genre.toLowerCase().contains(genre.split(",")[0].trim()))
-            .limit(10)
-            .collect(Collectors.toList());
+        List<MediaItem> recs;
+
+        // Buscar por género si está disponible
+        if (item.genre != null && !item.genre.isEmpty()) {
+            String genre = item.genre.toLowerCase().split(",")[0].trim();
+            recs = all.stream()
+                .filter(m -> !m.id.equals(item.id))
+                .filter(m -> m.genre != null && m.genre.toLowerCase().contains(genre))
+                .limit(12)
+                .collect(Collectors.toList());
+        } else {
+            // Si no hay género, mostrar de la misma categoría
+            recs = all.stream()
+                .filter(m -> !m.id.equals(item.id))
+                .filter(m -> item.group != null && item.group.equals(m.group))
+                .limit(12)
+                .collect(Collectors.toList());
+        }
 
         if (recs.isEmpty()) return;
 
@@ -155,7 +181,6 @@ public class VodDetailActivity extends AppCompatActivity {
         overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
     }
 
-    // Adapter inline para recomendaciones
     static class RecommendationAdapter extends RecyclerView.Adapter<RecommendationAdapter.VH> {
         interface OnClick { void onClick(MediaItem item); }
         private final List<MediaItem> items;
@@ -182,13 +207,8 @@ public class VodDetailActivity extends AppCompatActivity {
         @Override public int getItemCount() { return items.size(); }
 
         static class VH extends RecyclerView.ViewHolder {
-            ImageView ivCover;
-            TextView tvName;
-            VH(View v) {
-                super(v);
-                ivCover = v.findViewById(R.id.iv_cover);
-                tvName  = v.findViewById(R.id.tv_name);
-            }
+            ImageView ivCover; TextView tvName;
+            VH(View v) { super(v); ivCover = v.findViewById(R.id.iv_cover); tvName = v.findViewById(R.id.tv_name); }
         }
     }
 }
