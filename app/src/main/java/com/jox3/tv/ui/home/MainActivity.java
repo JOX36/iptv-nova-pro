@@ -340,19 +340,28 @@ public class MainActivity extends AppCompatActivity {
     private void openItem(MediaItem item) {
         prefs.addHistory(item);
         state.current = item;
+        // Cerrar PiP si está activo
+        sendBroadcast(new Intent("com.jox3.tv.CLOSE_PIP"));
         Intent intent;
         if (item.type.equals(MediaItem.LIVE)) {
             state.channelList = selectedCat != null ? selectedCat.items : new ArrayList<>();
             state.channelIdx  = state.channelList.indexOf(item);
             intent = new Intent(this, PlayerActivity.class);
+            intent.putExtra("item", item);
+            // Para Live abrir directamente sin delay
+            startActivity(intent);
+            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
         } else if (item.type.equals(MediaItem.VOD)) {
             intent = new Intent(this, com.jox3.tv.ui.vod.VodDetailActivity.class);
+            intent.putExtra("item", item);
+            startActivity(intent);
+            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
         } else {
             intent = new Intent(this, com.jox3.tv.ui.series.SeriesActivity.class);
+            intent.putExtra("item", item);
+            startActivity(intent);
+            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
         }
-        intent.putExtra("item", item);
-        startActivity(intent);
-        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
     }
 
     private void showProgress(boolean show) {
