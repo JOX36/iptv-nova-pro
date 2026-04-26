@@ -112,9 +112,16 @@ public class SeriesActivity extends AppCompatActivity {
                 Glide.with(this).load(cover).centerCrop().into(ivCover);
         }
 
-        // Temporadas
+        // Temporadas — el API puede devolver JsonObject o JsonArray
         if (!seriesData.has("episodes")) return;
-        JsonObject episodes = seriesData.getAsJsonObject("episodes");
+        JsonObject episodes;
+        try {
+            if (seriesData.get("episodes").isJsonObject()) {
+                episodes = seriesData.getAsJsonObject("episodes");
+            } else {
+                return; // Array vacío o formato no soportado
+            }
+        } catch (Exception e) { return; }
         if (episodes == null || episodes.size() == 0) return;
 
         List<String> seasons = new ArrayList<>(episodes.keySet());
@@ -154,18 +161,26 @@ public class SeriesActivity extends AppCompatActivity {
             String ext   = ep.has("container_extension") ?
                 ep.get("container_extension").getAsString() : "mp4";
 
-            // Sinopsis del episodio
+            // Sinopsis y miniatura del episodio
             String plot = "";
+            String thumb = "";
             if (ep.has("info") && !ep.get("info").isJsonNull()) {
                 JsonObject epInfo = ep.getAsJsonObject("info");
-                if (epInfo.has("plot")) plot = epInfo.get("plot").getAsString();
+                if (epInfo.has("plot"))          plot  = epInfo.get("plot").getAsString();
+                if (epInfo.has("movie_image"))   thumb = epInfo.get("movie_image").getAsString();
+                if (thumb.isEmpty() && epInfo.has("episode_image"))
+                    thumb = epInfo.get("episode_image").getAsString();
+                if (thumb.isEmpty() && epInfo.has("backdrop_path"))
+                    thumb = epInfo.get("backdrop_path").getAsString();
             }
+            // Fallback: usar cover de la serie
+            if (thumb.isEmpty() && item.cover != null) thumb = item.cover;
 
             String url = AppState.get().account.host + "/series/" +
                 AppState.get().account.user + "/" +
                 AppState.get().account.pass + "/" + epId + "." + ext;
 
-            list.add(new EpisodeItem(epId, "Ep " + (i + 1) + " - " + title, url, plot));
+            list.add(new EpisodeItem(epId, "Ep " + (i + 1) + " - " + title, url, plot, thumb));
         }
 
         rvEpisodes.setAdapter(new EpisodeAdapter(list, ep -> {
