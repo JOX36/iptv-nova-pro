@@ -14,11 +14,11 @@ import java.util.List;
 import java.util.Set;
 
 public class AppPrefs {
-    private static final String P      = "jox3tv";
-    private static final String ACCS   = "accounts";
-    private static final String LAST   = "last";
-    private static final String FAVS   = "favs";
-    private static final String HIST   = "hist";
+    private static final String P    = "jox3tv";
+    private static final String ACCS = "accounts";
+    private static final String LAST = "last";
+    private static final String FAVS = "favs";
+    private static final String HIST = "hist";
 
     private final SharedPreferences sp;
     private final Gson gson = new Gson();
@@ -97,5 +97,20 @@ public class AppPrefs {
     public int progressPct(String id) {
         long d = getDur(id);
         return d > 0 ? (int)(getPos(id) * 100 / d) : 0;
+    }
+
+    // ── Caché Home — para mostrar contenido instantáneamente ──
+    public void saveCachedHome(String type, List<MediaItem> items) {
+        try {
+            sp.edit().putString("home_" + type, gson.toJson(items)).apply();
+        } catch (Exception ignored) {}
+    }
+
+    public List<MediaItem> getCachedHome(String type) {
+        try {
+            String json = sp.getString("home_" + type, null);
+            if (json == null) return new ArrayList<>();
+            return gson.fromJson(json, new TypeToken<List<MediaItem>>(){}.getType());
+        } catch (Exception e) { return new ArrayList<>(); }
     }
 }
