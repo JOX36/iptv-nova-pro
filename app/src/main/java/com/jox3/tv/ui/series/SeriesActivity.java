@@ -112,14 +112,23 @@ public class SeriesActivity extends AppCompatActivity {
                 Glide.with(this).load(cover).centerCrop().into(ivCover);
         }
 
-        // Temporadas — el API puede devolver JsonObject o JsonArray
+        // Temporadas — manejar múltiples formatos del API
         if (!seriesData.has("episodes")) return;
-        JsonObject episodes;
+        JsonObject episodes = new JsonObject();
         try {
-            if (seriesData.get("episodes").isJsonObject()) {
-                episodes = seriesData.getAsJsonObject("episodes");
+            com.google.gson.JsonElement epEl = seriesData.get("episodes");
+            if (epEl.isJsonObject()) {
+                // Formato normal: {"1": [...], "2": [...]}
+                episodes = epEl.getAsJsonObject();
+            } else if (epEl.isJsonArray()) {
+                // Formato alternativo: array de episodios sin temporadas
+                // Agrupamos todo en temporada "1"
+                com.google.gson.JsonArray arr = epEl.getAsJsonArray();
+                if (arr.size() > 0) {
+                    episodes.add("1", arr);
+                }
             } else {
-                return; // Array vacío o formato no soportado
+                return;
             }
         } catch (Exception e) { return; }
         if (episodes == null || episodes.size() == 0) return;
@@ -149,8 +158,25 @@ public class SeriesActivity extends AppCompatActivity {
         loadEpisodes(episodes, seasons.get(0));
     }
 
+    // Método auxiliar para obtener array de episodios de una temporada
+    private com.google.gson.JsonArray getSeasonArray(JsonObject episodes, String season) {
+        try {
+            com.google.gson.JsonElement el = episodes.get(season);
+            if (el == null) return new com.google.gson.JsonArray();
+            if (el.isJsonArray()) return el.getAsJsonArray();
+            if (el.isJsonObject()) {
+                // A veces viene como objeto con keys numéricos
+                com.google.gson.JsonObject obj = el.getAsJsonObject();
+                com.google.gson.JsonArray arr = new com.google.gson.JsonArray();
+                for (String key : obj.keySet()) arr.add(obj.get(key));
+                return arr;
+            }
+        } catch (Exception ignored) {}
+        return new com.google.gson.JsonArray();
+    }
+
     private void loadEpisodes(JsonObject episodes, String season) {
-        JsonArray eps = episodes.getAsJsonArray(season);
+        JsonArray eps = getSeasonArray(episodes, season);
         if (eps == null || eps.size() == 0) return;
 
         List<EpisodeItem> list = new ArrayList<>();
