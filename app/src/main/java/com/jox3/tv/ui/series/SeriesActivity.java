@@ -147,15 +147,17 @@ public class SeriesActivity extends AppCompatActivity {
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerSeasons.setAdapter(adapter);
 
+        final JsonObject finalEpisodes = episodes;
+        final List<String> finalSeasons = seasons;
         spinnerSeasons.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override public void onItemSelected(AdapterView<?> p, View v, int pos, long id) {
-                loadEpisodes(episodes, seasons.get(pos));
+                loadEpisodes(finalEpisodes, finalSeasons.get(pos));
             }
             @Override public void onNothingSelected(AdapterView<?> p) {}
         });
 
         // Cargar primera temporada
-        loadEpisodes(episodes, seasons.get(0));
+        loadEpisodes(finalEpisodes, finalSeasons.get(0));
     }
 
     // Método auxiliar para obtener array de episodios de una temporada
