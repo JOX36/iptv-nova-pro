@@ -125,17 +125,28 @@ public class PlayerActivity extends AppCompatActivity {
             WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON |
             WindowManager.LayoutParams.FLAG_FULLSCREEN |
             WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
-        // Extender a borde a borde ignorando insets
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             getWindow().setDecorFitsSystemWindows(false);
+            getWindow().getInsetsController().hide(
+                android.view.WindowInsets.Type.statusBars() |
+                android.view.WindowInsets.Type.navigationBars());
+            getWindow().getInsetsController().setSystemBarsBehavior(
+                android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
         } else {
-            getWindow().getDecorView().setSystemUiVisibility(
-                View.SYSTEM_UI_FLAG_FULLSCREEN |
-                View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
-                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY |
-                View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
-                View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
-                View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+            int flags = View.SYSTEM_UI_FLAG_FULLSCREEN
+                | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                | View.SYSTEM_UI_FLAG_LAYOUT_STABLE;
+            getWindow().getDecorView().setSystemUiVisibility(flags);
+            // Restaurar si el sistema las muestra
+            getWindow().getDecorView().setOnSystemUiVisibilityChangeListener(
+                visibility -> {
+                    if ((visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0)
+                        getWindow().getDecorView().setSystemUiVisibility(flags);
+                });
         }
     }
 
@@ -157,11 +168,11 @@ public class PlayerActivity extends AppCompatActivity {
         tvPosition   = findViewById(R.id.tv_position);
         tvDuration   = findViewById(R.id.tv_duration);
 
-        // Live: llenar pantalla completa. VOD: mantener proporción
-        if (item.type.equals(MediaItem.LIVE)) {
-            playerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FILL);
-        } else {
+        // Live y Series: llenar pantalla. VOD: mantener proporción
+        if (item.type.equals(MediaItem.VOD)) {
             playerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FIT);
+        } else {
+            playerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FILL);
         }
         playerView.setPadding(0, 0, 0, 0);
 
