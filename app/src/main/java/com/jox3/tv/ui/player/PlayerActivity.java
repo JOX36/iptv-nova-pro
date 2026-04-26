@@ -75,6 +75,7 @@ public class PlayerActivity extends AppCompatActivity {
         overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
         setFullscreen();
         setContentView(R.layout.activity_player);
+        hideSystemBars();
 
         prefs = new AppPrefs(this);
         state = AppState.get();
@@ -128,11 +129,6 @@ public class PlayerActivity extends AppCompatActivity {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             getWindow().setDecorFitsSystemWindows(false);
-            getWindow().getInsetsController().hide(
-                android.view.WindowInsets.Type.statusBars() |
-                android.view.WindowInsets.Type.navigationBars());
-            getWindow().getInsetsController().setSystemBarsBehavior(
-                android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
         } else {
             int flags = View.SYSTEM_UI_FLAG_FULLSCREEN
                 | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
@@ -141,7 +137,6 @@ public class PlayerActivity extends AppCompatActivity {
                 | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                 | View.SYSTEM_UI_FLAG_LAYOUT_STABLE;
             getWindow().getDecorView().setSystemUiVisibility(flags);
-            // Restaurar si el sistema las muestra
             getWindow().getDecorView().setOnSystemUiVisibilityChangeListener(
                 visibility -> {
                     if ((visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0)
@@ -149,6 +144,20 @@ public class PlayerActivity extends AppCompatActivity {
                 });
         }
     }
+
+    // Llamar DESPUÉS de setContentView
+    private void hideSystemBars() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            android.view.WindowInsetsController wic = getWindow().getInsetsController();
+            if (wic != null) {
+                wic.hide(android.view.WindowInsets.Type.statusBars() |
+                         android.view.WindowInsets.Type.navigationBars());
+                wic.setSystemBarsBehavior(
+                    android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+            }
+        }
+    }
+
 
     @SuppressLint("ClickableViewAccessibility")
     private void initViews() {
