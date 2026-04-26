@@ -341,7 +341,7 @@ public class MainActivity extends AppCompatActivity {
         prefs.addHistory(item);
         state.current = item;
         // Cerrar PiP si está activo
-        sendBroadcast(new Intent("com.jox3.tv.CLOSE_PIP"));
+        com.jox3.tv.ui.player.PlayerActivity.requestClose = true;
         Intent intent;
         if (item.type.equals(MediaItem.LIVE)) {
             state.channelList = selectedCat != null ? selectedCat.items : new ArrayList<>();
