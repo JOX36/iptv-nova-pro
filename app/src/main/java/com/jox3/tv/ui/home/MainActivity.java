@@ -232,40 +232,47 @@ public class MainActivity extends AppCompatActivity {
                 addVodCard(rowContinue, m, true, true);
         }
 
-        // Live — sin badge, sin progreso
+        // Live
         List<MediaItem> liveItems = new ArrayList<>();
         for (Category c : state.liveCats)
             if (c.loaded && !c.items.isEmpty()) { liveItems.addAll(c.items); break; }
+        // Caché: si no hay en memoria, usar guardado
+        if (liveItems.isEmpty()) liveItems = prefs.getCachedHome("live");
         if (!liveItems.isEmpty()) {
             sectionLive.setVisibility(View.VISIBLE);
             homeEmpty.setVisibility(View.GONE);
             rowLive.removeAllViews();
-            for (MediaItem m : liveItems.subList(0, Math.min(15, liveItems.size())))
-                addChannelCard(rowLive, m);
+            List<MediaItem> show = liveItems.subList(0, Math.min(15, liveItems.size()));
+            for (MediaItem m : show) addChannelCard(rowLive, m);
+            prefs.saveCachedHome("live", show); // Guardar para próxima vez
         }
 
-        // VOD — sin badge, sin progreso
+        // VOD
         List<MediaItem> vodItems = new ArrayList<>();
         for (Category c : state.vodCats)
             if (c.loaded && !c.items.isEmpty()) { vodItems.addAll(c.items); break; }
+        if (vodItems.isEmpty()) vodItems = prefs.getCachedHome("vod");
         if (!vodItems.isEmpty()) {
             sectionVod.setVisibility(View.VISIBLE);
             homeEmpty.setVisibility(View.GONE);
             rowVod.removeAllViews();
-            for (MediaItem m : vodItems.subList(0, Math.min(15, vodItems.size())))
-                addVodCard(rowVod, m, false, false);
+            List<MediaItem> show = vodItems.subList(0, Math.min(15, vodItems.size()));
+            for (MediaItem m : show) addVodCard(rowVod, m, false, false);
+            prefs.saveCachedHome("vod", show);
         }
 
-        // Series — sin badge, sin progreso
+        // Series
         List<MediaItem> seriesItems = new ArrayList<>();
         for (Category c : state.seriesCats)
             if (c.loaded && !c.items.isEmpty()) { seriesItems.addAll(c.items); break; }
+        if (seriesItems.isEmpty()) seriesItems = prefs.getCachedHome("series");
         if (!seriesItems.isEmpty()) {
             sectionSeries.setVisibility(View.VISIBLE);
             homeEmpty.setVisibility(View.GONE);
             rowSeries.removeAllViews();
-            for (MediaItem m : seriesItems.subList(0, Math.min(15, seriesItems.size())))
-                addVodCard(rowSeries, m, false, false);
+            List<MediaItem> show = seriesItems.subList(0, Math.min(15, seriesItems.size()));
+            for (MediaItem m : show) addVodCard(rowSeries, m, false, false);
+            prefs.saveCachedHome("series", show);
         }
     }
 
