@@ -167,10 +167,19 @@ public class SeriesActivity extends AppCompatActivity {
             if (el == null) return new com.google.gson.JsonArray();
             if (el.isJsonArray()) return el.getAsJsonArray();
             if (el.isJsonObject()) {
-                // A veces viene como objeto con keys numéricos
+                // Objeto con keys numéricos — cada valor debe ser un episodio (JsonObject)
                 com.google.gson.JsonObject obj = el.getAsJsonObject();
                 com.google.gson.JsonArray arr = new com.google.gson.JsonArray();
-                for (String key : obj.keySet()) arr.add(obj.get(key));
+                for (String key : obj.keySet()) {
+                    com.google.gson.JsonElement val = obj.get(key);
+                    if (val.isJsonObject()) arr.add(val);
+                    // Si el valor es un array, agregar sus elementos
+                    else if (val.isJsonArray()) {
+                        com.google.gson.JsonArray inner = val.getAsJsonArray();
+                        for (int i = 0; i < inner.size(); i++)
+                            if (inner.get(i).isJsonObject()) arr.add(inner.get(i));
+                    }
+                }
                 return arr;
             }
         } catch (Exception ignored) {}
@@ -183,6 +192,8 @@ public class SeriesActivity extends AppCompatActivity {
 
         List<EpisodeItem> list = new ArrayList<>();
         for (int i = 0; i < eps.size(); i++) {
+            // Saltar elementos que no sean JsonObject
+            if (!eps.get(i).isJsonObject()) continue;
             JsonObject ep = eps.get(i).getAsJsonObject();
             String epId  = ep.has("id")    ? ep.get("id").getAsString()    : "";
             String title = ep.has("title") ? ep.get("title").getAsString() : "Episodio " + (i + 1);
@@ -192,7 +203,7 @@ public class SeriesActivity extends AppCompatActivity {
             // Sinopsis y miniatura del episodio
             String plot = "";
             String thumb = "";
-            if (ep.has("info") && !ep.get("info").isJsonNull()) {
+            if (ep.has("info") && !ep.get("info").isJsonNull() && ep.get("info").isJsonObject()) {
                 JsonObject epInfo = ep.getAsJsonObject("info");
                 if (epInfo.has("plot"))          plot  = epInfo.get("plot").getAsString();
                 if (epInfo.has("movie_image"))   thumb = epInfo.get("movie_image").getAsString();
