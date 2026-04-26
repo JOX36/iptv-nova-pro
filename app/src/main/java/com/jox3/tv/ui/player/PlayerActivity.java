@@ -56,6 +56,9 @@ public class PlayerActivity extends AppCompatActivity {
     private boolean isInPip = false;
     private boolean playerReleased = false;
     private BroadcastReceiver pipCloseReceiver;
+
+    // Flag estático para cerrar PiP desde otras activities
+    public static volatile boolean requestClose = false;
     private boolean seekBarTracking = false;
     private int retryCount = 0;
 
@@ -65,6 +68,17 @@ public class PlayerActivity extends AppCompatActivity {
     private int gestStartVol;
     private float gestStartBright;
     private long seekStartPos;
+
+    private final Runnable pipCheckRunnable = new Runnable() {
+        @Override public void run() {
+            if (requestClose && !playerReleased) {
+                requestClose = false;
+                exitPlayer();
+                return;
+            }
+            if (isInPip) handler.postDelayed(this, 500);
+        }
+    };
 
     private final Runnable seekUpdateRunnable = new Runnable() {
         @Override public void run() {
@@ -105,7 +119,12 @@ public class PlayerActivity extends AppCompatActivity {
                 exitPlayer();
             }
         };
-        registerReceiver(pipCloseReceiver, new IntentFilter("com.jox3.tv.CLOSE_PIP"));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(pipCloseReceiver, new IntentFilter("com.jox3.tv.CLOSE_PIP"),
+                Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(pipCloseReceiver, new IntentFilter("com.jox3.tv.CLOSE_PIP"));
+        }
         initViews();
         initPlayer();
         if (isTv) showBars();
@@ -399,12 +418,15 @@ public class PlayerActivity extends AppCompatActivity {
     public void onPictureInPictureModeChanged(boolean inPip, @NonNull Configuration conf) {
         super.onPictureInPictureModeChanged(inPip, conf);
         isInPip = inPip;
-        if (!inPip) {
+        if (inPip) {
+            // Iniciar verificación del flag de cierre
+            requestClose = false;
+            handler.postDelayed(pipCheckRunnable, 500);
+        } else {
+            handler.removeCallbacks(pipCheckRunnable);
             if (isFinishing()) {
-                // Usuario cerró el PiP con X — liberar todo
                 exitPlayer();
             } else {
-                // Volvió a pantalla completa
                 setFullscreen();
                 hideSystemBars();
                 showBars();
