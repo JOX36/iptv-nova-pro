@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/home_scroll"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingBottom="16dp">
+
+        <!-- Continuar viendo -->
+        <LinearLayout
+            android:id="@+id/section_continue"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="CONTINUAR VIENDO"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:textColor="@color/accent"
+                android:letterSpacing="0.1"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:paddingTop="16dp"
+                android:paddingBottom="8dp"/>
+
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:scrollbars="none"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp">
+
+                <LinearLayout
+                    android:id="@+id/row_continue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"/>
+
+            </HorizontalScrollView>
+
+        </LinearLayout>
+
+        <!-- Canales en vivo -->
+        <LinearLayout
+            android:id="@+id/section_live"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:paddingTop="16dp"
+                android:paddingBottom="8dp">
+
+                <View
+                    android:layout_width="3dp"
+                    android:layout_height="16dp"
+                    android:background="@color/red"
+                    android:layout_marginEnd="8dp"/>
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="EN VIVO"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text"
+                    android:letterSpacing="0.1"/>
+
+                <TextView
+                    android:id="@+id/tv_live_more"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Ver todo ›"
+                    android:textSize="11sp"
+                    android:textColor="@color/accent"/>
+
+            </LinearLayout>
+
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:scrollbars="none"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp">
+
+                <LinearLayout
+                    android:id="@+id/row_live"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"/>
+
+            </HorizontalScrollView>
+
+        </LinearLayout>
+
+        <!-- Películas destacadas -->
+        <LinearLayout
+            android:id="@+id/section_vod"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:paddingTop="16dp"
+                android:paddingBottom="8dp">
+
+                <View
+                    android:layout_width="3dp"
+                    android:layout_height="16dp"
+                    android:background="@color/accent"
+                    android:layout_marginEnd="8dp"/>
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="PELÍCULAS DESTACADAS"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text"
+                    android:letterSpacing="0.1"/>
+
+                <TextView
+                    android:id="@+id/tv_vod_more"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Ver todo ›"
+                    android:textSize="11sp"
+                    android:textColor="@color/accent"/>
+
+            </LinearLayout>
+
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:scrollbars="none"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp">
+
+                <LinearLayout
+                    android:id="@+id/row_vod"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"/>
+
+            </HorizontalScrollView>
+
+        </LinearLayout>
+
+        <!-- Series destacadas -->
+        <LinearLayout
+            android:id="@+id/section_series"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:paddingTop="16dp"
+                android:paddingBottom="8dp">
+
+                <View
+                    android:layout_width="3dp"
+                    android:layout_height="16dp"
+                    android:background="@color/accent2"
+                    android:layout_marginEnd="8dp"/>
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="SERIES DESTACADAS"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text"
+                    android:letterSpacing="0.1"/>
+
+                <TextView
+                    android:id="@+id/tv_series_more"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Ver todo ›"
+                    android:textSize="11sp"
+                    android:textColor="@color/accent"/>
+
+            </LinearLayout>
+
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:scrollbars="none"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp">
+
+                <LinearLayout
+                    android:id="@+id/row_series"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"/>
+
+            </HorizontalScrollView>
+
+        </LinearLayout>
+
+        <!-- Estado vacío -->
+        <LinearLayout
+            android:id="@+id/home_empty"
+            android:layout_width="match_parent"
+            android:layout_height="300dp"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:visibility="visible">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="◈ JOX3 TV"
+                android:textSize="32sp"
+                android:textStyle="bold"
+                android:textColor="@color/accent"
+                android:shadowColor="@color/accent"
+                android:shadowDx="0" android:shadowDy="0" android:shadowRadius="12"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Selecciona Live, Películas o Series"
+                android:textSize="13sp"
+                android:textColor="@color/muted"
+                android:layout_marginTop="8dp"/>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</androidx.core.widget.NestedScrollView>
