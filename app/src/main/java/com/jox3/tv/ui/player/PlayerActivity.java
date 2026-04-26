@@ -389,9 +389,16 @@ public class PlayerActivity extends AppCompatActivity {
         super.onPictureInPictureModeChanged(inPip, conf);
         isInPip = inPip;
         if (!inPip) {
-            setFullscreen();
-            showBars();
-            if (player != null && !player.isPlaying()) player.play();
+            if (isFinishing()) {
+                // Usuario cerró el PiP con X — liberar todo
+                exitPlayer();
+            } else {
+                // Volvió a pantalla completa
+                setFullscreen();
+                hideSystemBars();
+                showBars();
+                if (player != null && !player.isPlaying()) player.play();
+            }
         }
         // No pausar al entrar en PiP
     }
@@ -525,6 +532,11 @@ public class PlayerActivity extends AppCompatActivity {
     @Override protected void onStop() {
         super.onStop();
         saveProgress();
+        // Si estamos en PiP y la activity se para = nueva activity encima
+        // Liberar el player para no reproducir en segundo plano
+        if (isInPip && !isFinishing()) {
+            exitPlayer();
+        }
     }
 
     @Override protected void onDestroy() {
