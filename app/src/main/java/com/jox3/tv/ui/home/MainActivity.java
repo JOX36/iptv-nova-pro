@@ -58,6 +58,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView tvAccount, tvSearchResults;
 
     // Home views
+    private ViewGroup contentContainer;
     private View homeView;
     private LinearLayout sectionContinue, rowContinue;
     private LinearLayout sectionLive, rowLive;
@@ -95,7 +96,8 @@ public class MainActivity extends AppCompatActivity {
         progressTop     = findViewById(R.id.progress_top);
         swipeRefresh    = findViewById(R.id.swipe_refresh);
         etSearch        = findViewById(R.id.et_search);
-        tvAccount       = findViewById(R.id.tv_account);
+        tvAccount          = findViewById(R.id.tv_account);
+        contentContainer   = findViewById(R.id.content_container);
         rvCats          = findViewById(R.id.rv_categories);
         rvContent       = findViewById(R.id.rv_content);
         tvSearchResults = findViewById(R.id.tv_search_results);
@@ -204,8 +206,8 @@ public class MainActivity extends AppCompatActivity {
         // Inflar home si no existe
         if (homeView == null) {
             homeView = LayoutInflater.from(this)
-                .inflate(R.layout.fragment_home, (ViewGroup) rvContent.getParent(), false);
-            ((ViewGroup) rvContent.getParent()).addView(homeView);
+                .inflate(R.layout.fragment_home, contentContainer, false);
+            contentContainer.addView(homeView);
 
             sectionContinue = homeView.findViewById(R.id.section_continue);
             rowContinue     = homeView.findViewById(R.id.row_continue);
