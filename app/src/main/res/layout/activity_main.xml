@@ -94,6 +94,53 @@
                     android:imeOptions="actionSearch"
                     android:maxLines="1"/>
 
+                <!-- Estado de indexación -->
+                <LinearLayout
+                    android:id="@+id/layout_index_progress"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingTop="4dp"
+                    android:visibility="gone">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="3dp">
+
+                        <TextView
+                            android:id="@+id/tv_index_status"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:textSize="10sp"
+                            android:textColor="@color/muted"
+                            android:text="Indexando contenido..."/>
+
+                        <TextView
+                            android:id="@+id/tv_index_pct"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textSize="10sp"
+                            android:textColor="@color/accent"
+                            android:text="0%"/>
+
+                    </LinearLayout>
+
+                    <ProgressBar
+                        android:id="@+id/progress_index"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="3dp"
+                        android:progressTint="@color/accent"
+                        android:progressBackgroundTint="@color/bg3"
+                        android:max="100"
+                        android:progress="0"/>
+
+                </LinearLayout>
+
                 <!-- Resultado de búsqueda -->
                 <TextView
                     android:id="@+id/tv_search_results"
