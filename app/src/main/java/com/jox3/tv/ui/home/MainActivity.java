@@ -253,20 +253,15 @@ public class MainActivity extends AppCompatActivity {
     private void refreshHome() {
         if (homeView == null) return;
 
-        // Sección continuar viendo
+        // Sección continuar viendo — historial reciente con badge y progreso
         List<MediaItem> hist = prefs.history();
-        List<MediaItem> continueList = hist.stream()
-            .filter(m -> {
-                int pct = prefs.progressPct(m.id);
-                return pct > 2 && pct < 95;
-            }).limit(10).collect(Collectors.toList());
-
-        if (!continueList.isEmpty()) {
+        if (!hist.isEmpty()) {
             sectionContinue.setVisibility(View.VISIBLE);
             homeEmpty.setVisibility(View.GONE);
             rowContinue.removeAllViews();
-            for (MediaItem m : continueList) {
-                addVodCard(rowContinue, m, true);
+            // Mostrar hasta 15 items del historial con badge y progreso
+            for (MediaItem m : hist.subList(0, Math.min(15, hist.size()))) {
+                addVodCard(rowContinue, m, true, true); // showBadge=true, showProgress=true
             }
         }
 
@@ -324,7 +319,7 @@ public class MainActivity extends AppCompatActivity {
                         homeEmpty.setVisibility(View.GONE);
                         rowVod.removeAllViews();
                         for (MediaItem m : vodItems.subList(0, Math.min(15, vodItems.size())))
-                            addVodCard(rowVod, m, false);
+                            addVodCard(rowVod, m, false, false); // sin badge, sin progreso
                     }
 
                     // Series row
@@ -336,7 +331,7 @@ public class MainActivity extends AppCompatActivity {
                         homeEmpty.setVisibility(View.GONE);
                         rowSeries.removeAllViews();
                         for (MediaItem m : seriesItems.subList(0, Math.min(15, seriesItems.size())))
-                            addVodCard(rowSeries, m, false);
+                            addVodCard(rowSeries, m, false, false); // sin badge, sin progreso
                     }
                 });
             } catch (Exception e) {
@@ -362,7 +357,7 @@ public class MainActivity extends AppCompatActivity {
         row.addView(card);
     }
 
-    private void addVodCard(LinearLayout row, MediaItem m, boolean showProgress) {
+    private void addVodCard(LinearLayout row, MediaItem m, boolean showProgress, boolean showBadge) {
         View card = LayoutInflater.from(this)
             .inflate(R.layout.item_home_vod, row, false);
         ImageView iv    = card.findViewById(R.id.iv_cover);
@@ -374,13 +369,16 @@ public class MainActivity extends AppCompatActivity {
 
         tvName.setText(m.name);
 
-        // Badge tipo
-        if (m.type != null) {
+        // Badge tipo — solo en continuar viendo
+        if (showBadge && m.type != null) {
+            badge.setVisibility(View.VISIBLE);
             badge.setText(m.type.equals(MediaItem.LIVE) ? "VIVO" :
                           m.type.equals(MediaItem.VOD)  ? "VOD"  : "SERIE");
             badge.setBackgroundColor(getColor(
                 m.type.equals(MediaItem.LIVE)   ? R.color.red :
                 m.type.equals(MediaItem.SERIES) ? R.color.accent2 : R.color.accent));
+        } else {
+            badge.setVisibility(View.GONE);
         }
 
         // Cover
