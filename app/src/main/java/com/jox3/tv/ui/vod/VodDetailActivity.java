@@ -180,15 +180,12 @@ public class VodDetailActivity extends AppCompatActivity {
     }
 
     private void playVod() {
-        // Cerrar PiP si está activo antes de abrir nuevo video
-        sendBroadcast(new Intent("com.jox3.tv.CLOSE_PIP"));
-        // Pequeña pausa para que el PiP se cierre antes de abrir el nuevo player
-        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
-            Intent intent = new Intent(this, PlayerActivity.class);
-            intent.putExtra("item", item);
-            startActivity(intent);
-            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
-        }, 300);
+        // Cerrar PiP si está activo
+        PlayerActivity.requestClose = true;
+        Intent intent = new Intent(this, PlayerActivity.class);
+        intent.putExtra("item", item);
+        startActivity(intent);
+        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
     }
 
     static class RecommendationAdapter extends RecyclerView.Adapter<RecommendationAdapter.VH> {
