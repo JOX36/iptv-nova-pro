@@ -1,7 +1,10 @@
 package com.jox3.tv.ui.player;
 
 import android.annotation.SuppressLint;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.app.PictureInPictureParams;
 import android.content.res.Configuration;
 import android.media.AudioManager;
@@ -52,6 +55,7 @@ public class PlayerActivity extends AppCompatActivity {
     private boolean isTv = false;
     private boolean isInPip = false;
     private boolean playerReleased = false;
+    private BroadcastReceiver pipCloseReceiver;
     private boolean seekBarTracking = false;
     private int retryCount = 0;
 
@@ -95,6 +99,13 @@ public class PlayerActivity extends AppCompatActivity {
             return;
         }
 
+        // Receiver para cerrar PiP cuando se abre otro video
+        pipCloseReceiver = new BroadcastReceiver() {
+            @Override public void onReceive(Context ctx, Intent i) {
+                exitPlayer();
+            }
+        };
+        registerReceiver(pipCloseReceiver, new IntentFilter("com.jox3.tv.CLOSE_PIP"));
         initViews();
         initPlayer();
         if (isTv) showBars();
@@ -541,6 +552,10 @@ public class PlayerActivity extends AppCompatActivity {
 
     @Override protected void onDestroy() {
         super.onDestroy();
+        if (pipCloseReceiver != null) {
+            try { unregisterReceiver(pipCloseReceiver); } catch (Exception ignored) {}
+            pipCloseReceiver = null;
+        }
         if (!playerReleased) exitPlayer();
     }
 
