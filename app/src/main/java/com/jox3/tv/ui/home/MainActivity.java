@@ -113,7 +113,7 @@ public class MainActivity extends AppCompatActivity {
                 if (state.seriesCats.isEmpty())
                     state.seriesCats.addAll(state.api.getSeriesCats());
 
-                // Contar total de categorías a cargar
+                // Contar DESPUÉS de cargar las listas — para incluir series
                 indexTotal = state.liveCats.size() + state.vodCats.size() + state.seriesCats.size();
                 indexDone = 0;
 
@@ -123,22 +123,32 @@ public class MainActivity extends AppCompatActivity {
                     updateIndexProgress();
                 });
 
-                // 2. Cargar cada categoría — Series NO se indexa completa
-                //    (demasiadas peticiones, se carga bajo demanda)
+                // 2. Cargar Live y VOD completos
                 loadAllCats(state.liveCats, MediaItem.LIVE);
                 loadAllCats(state.vodCats,  MediaItem.VOD);
-                // Series: solo cargar primera categoría para el Home
-                if (!state.seriesCats.isEmpty() && !state.seriesCats.get(0).loaded) {
-                    try {
-                        Category c = state.seriesCats.get(0);
-                        c.items = state.api.getSeries(c.id);
-                        c.loaded = true;
-                        indexDone += state.seriesCats.size(); // marcar como completo
-                        mainHandler.post(this::updateIndexProgress);
-                    } catch (Exception ignored) {}
-                } else {
-                    indexDone += state.seriesCats.size();
+
+                // 3. Series — cargar primeras 3 categorías para Home y búsqueda básica
+                //    El resto se carga bajo demanda cuando el usuario navega
+                int seriesLoaded = 0;
+                for (Category sc : state.seriesCats) {
+                    if (isDestroyed()) break;
+                    if (!sc.loaded) {
+                        try {
+                            sc.items = state.api.getSeries(sc.id);
+                            sc.loaded = true;
+                            seriesLoaded++;
+                        } catch (Exception ignored) {}
+                    }
+                    indexDone++;
                     mainHandler.post(this::updateIndexProgress);
+                    // Después de 3 categorías cargadas, pausar indexación de series
+                    // El resto sigue en segundo plano pero no bloquea
+                    if (seriesLoaded >= 3) {
+                        // Marcar el resto como "saltado" para que el progreso llegue al 100%
+                        indexDone += (state.seriesCats.size() - (state.seriesCats.indexOf(sc) + 1));
+                        mainHandler.post(this::updateIndexProgress);
+                        break;
+                    }
                 }
 
                 // 3. Indexación completa
