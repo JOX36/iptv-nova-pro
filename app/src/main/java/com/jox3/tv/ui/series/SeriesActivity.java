@@ -4,9 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
@@ -20,6 +18,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.jox3.tv.R;
 import com.jox3.tv.model.MediaItem;
@@ -41,34 +40,35 @@ public class SeriesActivity extends AppCompatActivity {
 
     private Spinner spinnerSeasons;
     private RecyclerView rvEpisodes;
-    private TextView tvTitle, tvPlot, tvRating, tvYear;
+    private TextView tvTitle, tvPlot, tvRating, tvYear, tvEpisodeCount;
     private ImageView ivCover;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_series);
-
         item = (MediaItem) getIntent().getSerializableExtra("item");
         if (item == null) { finish(); return; }
-
         initViews();
         loadSeriesInfo();
     }
 
     private void initViews() {
-        tvTitle      = findViewById(R.id.tv_title);
-        tvPlot       = findViewById(R.id.tv_plot);
-        tvRating     = findViewById(R.id.tv_rating);
-        tvYear       = findViewById(R.id.tv_year);
-        ivCover      = findViewById(R.id.iv_cover);
+        tvTitle        = findViewById(R.id.tv_title);
+        tvPlot         = findViewById(R.id.tv_plot);
+        tvRating       = findViewById(R.id.tv_rating);
+        tvYear         = findViewById(R.id.tv_year);
+        tvEpisodeCount = findViewById(R.id.tv_episode_count);
+        ivCover        = findViewById(R.id.iv_cover);
         spinnerSeasons = findViewById(R.id.spinner_seasons);
-        rvEpisodes   = findViewById(R.id.rv_episodes);
+        rvEpisodes     = findViewById(R.id.rv_episodes);
 
         tvTitle.setText(item.name);
 
         if (item.cover != null && !item.cover.isEmpty())
             Glide.with(this).load(item.cover).centerCrop().into(ivCover);
+        else if (item.thumb() != null && !item.thumb().isEmpty())
+            Glide.with(this).load(item.thumb()).centerCrop().into(ivCover);
 
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
         rvEpisodes.setLayoutManager(new LinearLayoutManager(this));
@@ -84,8 +84,8 @@ public class SeriesActivity extends AppCompatActivity {
                 });
             } catch (Exception e) {
                 mainHandler.post(() -> {
-                    if (!isDestroyed() && !isFinishing())
-                        Toast.makeText(this, "Error cargando serie", Toast.LENGTH_SHORT).show();
+                    if (isDestroyed() || isFinishing()) return;
+                    Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
             }
         });
@@ -95,136 +95,173 @@ public class SeriesActivity extends AppCompatActivity {
         if (seriesData == null) return;
 
         // Info básica
-        JsonObject info = seriesData.has("info") ?
-            seriesData.getAsJsonObject("info") : null;
-        if (info != null) {
-            String plot   = info.has("plot")        ? info.get("plot").getAsString()        : "";
-            String rating = info.has("rating")      ? info.get("rating").getAsString()      : "";
-            String year   = info.has("releaseDate") ? info.get("releaseDate").getAsString() : "";
-            String cover  = info.has("cover")       ? info.get("cover").getAsString()       :
-                            info.has("backdrop_path") ? info.get("backdrop_path").getAsString() : item.cover;
+        if (seriesData.has("info") && seriesData.get("info").isJsonObject()) {
+            JsonObject info = seriesData.getAsJsonObject("info");
+            String plot   = getStr(info, "plot", "description");
+            String rating = getStr(info, "rating", "rating_5based");
+            String year   = getStr(info, "releaseDate", "year", "release_date");
+            String cover  = getStr(info, "cover", "backdrop_path", "movie_image");
 
             if (tvPlot   != null) tvPlot.setText(plot.isEmpty() ? "Sin sinopsis" : plot);
             if (tvRating != null) tvRating.setText(rating.isEmpty() ? "" : "★ " + rating);
             if (tvYear   != null) tvYear.setText(year);
-
-            if (cover != null && !cover.isEmpty() && ivCover != null)
+            if (!cover.isEmpty() && ivCover != null && !isDestroyed())
                 Glide.with(this).load(cover).centerCrop().into(ivCover);
         }
 
-        // Temporadas — manejar múltiples formatos del API
-        if (!seriesData.has("episodes")) return;
-        JsonObject episodes = new JsonObject();
-        try {
-            com.google.gson.JsonElement epEl = seriesData.get("episodes");
-            if (epEl.isJsonObject()) {
-                // Formato normal: {"1": [...], "2": [...]}
-                episodes = epEl.getAsJsonObject();
-            } else if (epEl.isJsonArray()) {
-                // Formato alternativo: array de episodios sin temporadas
-                // Agrupamos todo en temporada "1"
-                com.google.gson.JsonArray arr = epEl.getAsJsonArray();
-                if (arr.size() > 0) {
-                    episodes.add("1", arr);
-                }
-            } else {
-                return;
-            }
-        } catch (Exception e) { return; }
-        if (episodes == null || episodes.size() == 0) return;
+        // Episodios
+        if (!seriesData.has("episodes")) { showNoEpisodes(); return; }
+        JsonObject seasonsMap = buildSeasonsMap(seriesData.get("episodes"));
+        if (seasonsMap == null || seasonsMap.size() == 0) { showNoEpisodes(); return; }
 
-        List<String> seasons = new ArrayList<>(episodes.keySet());
+        List<String> seasons = new ArrayList<>(seasonsMap.keySet());
         seasons.sort((a, b) -> {
             try { return Integer.compare(Integer.parseInt(a), Integer.parseInt(b)); }
             catch (Exception e) { return a.compareTo(b); }
         });
 
-        if (seasons.isEmpty()) return;
+        // Contador total
+        int total = 0;
+        for (String s : seasons) total += toArray(seasonsMap.get(s)).size();
+        if (tvEpisodeCount != null)
+            tvEpisodeCount.setText(seasons.size() + " temp · " + total + " ep");
 
+        // Spinner
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
             android.R.layout.simple_spinner_item,
             seasons.stream().map(s -> "Temporada " + s).collect(Collectors.toList()));
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerSeasons.setAdapter(adapter);
 
-        final JsonObject finalEpisodes = episodes;
+        final JsonObject finalMap = seasonsMap;
         final List<String> finalSeasons = seasons;
         spinnerSeasons.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override public void onItemSelected(AdapterView<?> p, View v, int pos, long id) {
-                loadEpisodes(finalEpisodes, finalSeasons.get(pos));
+                loadEpisodes(finalMap, finalSeasons.get(pos));
             }
             @Override public void onNothingSelected(AdapterView<?> p) {}
         });
 
-        // Cargar primera temporada
-        loadEpisodes(finalEpisodes, finalSeasons.get(0));
+        loadEpisodes(finalMap, seasons.get(0));
     }
 
-    // Método auxiliar para obtener array de episodios de una temporada
-    private com.google.gson.JsonArray getSeasonArray(JsonObject episodes, String season) {
+    /**
+     * Convierte cualquier formato del API en {"1": [ep,...], "2": [...]}
+     * Soporta:
+     * - {"1": [ep,ep], "2": [ep]}       formato estándar
+     * - [ep1, ep2, ep3]                  array plano
+     * - {"1": {"0": ep, "1": ep}}        objeto con keys numéricos
+     * - array donde cada ep tiene campo "season"
+     */
+    private JsonObject buildSeasonsMap(JsonElement el) {
+        if (el == null || el.isJsonNull()) return null;
         try {
-            com.google.gson.JsonElement el = episodes.get(season);
-            if (el == null) return new com.google.gson.JsonArray();
-            if (el.isJsonArray()) return el.getAsJsonArray();
             if (el.isJsonObject()) {
-                // Objeto con keys numéricos — cada valor debe ser un episodio (JsonObject)
-                com.google.gson.JsonObject obj = el.getAsJsonObject();
-                com.google.gson.JsonArray arr = new com.google.gson.JsonArray();
+                JsonObject obj = el.getAsJsonObject();
+                if (obj.size() == 0) return null;
+                JsonObject result = new JsonObject();
                 for (String key : obj.keySet()) {
-                    com.google.gson.JsonElement val = obj.get(key);
-                    if (val.isJsonObject()) arr.add(val);
-                    // Si el valor es un array, agregar sus elementos
-                    else if (val.isJsonArray()) {
-                        com.google.gson.JsonArray inner = val.getAsJsonArray();
-                        for (int i = 0; i < inner.size(); i++)
-                            if (inner.get(i).isJsonObject()) arr.add(inner.get(i));
-                    }
+                    JsonArray arr = toArray(obj.get(key));
+                    if (arr.size() > 0) result.add(key, arr);
                 }
-                return arr;
+                return result.size() > 0 ? result : null;
+            }
+            if (el.isJsonArray()) {
+                JsonArray arr = el.getAsJsonArray();
+                if (arr.size() == 0) return null;
+                JsonObject result = new JsonObject();
+                for (int i = 0; i < arr.size(); i++) {
+                    if (!arr.get(i).isJsonObject()) continue;
+                    JsonObject ep = arr.get(i).getAsJsonObject();
+                    String season = getStr(ep, "season", "season_num", "s");
+                    if (season.isEmpty() || season.equals("0")) season = "1";
+                    if (!result.has(season)) result.add(season, new JsonArray());
+                    result.getAsJsonArray(season).add(ep);
+                }
+                return result.size() > 0 ? result : null;
             }
         } catch (Exception ignored) {}
-        return new com.google.gson.JsonArray();
+        return null;
     }
 
-    private void loadEpisodes(JsonObject episodes, String season) {
-        JsonArray eps = getSeasonArray(episodes, season);
-        if (eps == null || eps.size() == 0) return;
+    /**
+     * Convierte cualquier elemento en JsonArray de episodios
+     */
+    private JsonArray toArray(JsonElement el) {
+        if (el == null || el.isJsonNull()) return new JsonArray();
+        if (el.isJsonArray()) return el.getAsJsonArray();
+        if (el.isJsonObject()) {
+            JsonObject obj = el.getAsJsonObject();
+            JsonArray arr = new JsonArray();
+            for (String k : obj.keySet()) {
+                JsonElement v = obj.get(k);
+                if (v.isJsonObject()) arr.add(v);
+                else if (v.isJsonArray()) {
+                    JsonArray inner = v.getAsJsonArray();
+                    for (int i = 0; i < inner.size(); i++)
+                        if (inner.get(i).isJsonObject()) arr.add(inner.get(i));
+                }
+            }
+            return arr;
+        }
+        return new JsonArray();
+    }
+
+    private void loadEpisodes(JsonObject seasonsMap, String season) {
+        JsonArray eps = seasonsMap.has(season) ?
+            toArray(seasonsMap.get(season)) : new JsonArray();
+
+        if (eps.size() == 0) {
+            Toast.makeText(this, "Sin episodios en esta temporada", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
         List<EpisodeItem> list = new ArrayList<>();
         for (int i = 0; i < eps.size(); i++) {
-            // Saltar elementos que no sean JsonObject
             if (!eps.get(i).isJsonObject()) continue;
             JsonObject ep = eps.get(i).getAsJsonObject();
-            String epId  = ep.has("id")    ? ep.get("id").getAsString()    : "";
-            String title = ep.has("title") ? ep.get("title").getAsString() : "Episodio " + (i + 1);
-            String ext   = ep.has("container_extension") ?
-                ep.get("container_extension").getAsString() : "mp4";
 
-            // Sinopsis y miniatura del episodio
-            String plot = "";
+            String epId  = getStr(ep, "id", "stream_id", "episode_id");
+            if (epId.isEmpty()) continue;
+
+            String title = getStr(ep, "title", "name", "episode_name");
+            if (title.isEmpty()) title = "Episodio " + (i + 1);
+
+            String ext   = getStr(ep, "container_extension", "ext");
+            if (ext.isEmpty()) ext = "mp4";
+
+            String epNum = getStr(ep, "episode_num", "num");
+            String plot  = "";
             String thumb = "";
+
             if (ep.has("info") && !ep.get("info").isJsonNull() && ep.get("info").isJsonObject()) {
-                JsonObject epInfo = ep.getAsJsonObject("info");
-                if (epInfo.has("plot"))          plot  = epInfo.get("plot").getAsString();
-                if (epInfo.has("movie_image"))   thumb = epInfo.get("movie_image").getAsString();
-                if (thumb.isEmpty() && epInfo.has("episode_image"))
-                    thumb = epInfo.get("episode_image").getAsString();
-                if (thumb.isEmpty() && epInfo.has("backdrop_path"))
-                    thumb = epInfo.get("backdrop_path").getAsString();
+                JsonObject info = ep.getAsJsonObject("info");
+                plot  = getStr(info, "plot", "overview", "description");
+                thumb = getStr(info, "movie_image", "episode_image", "backdrop_path", "still_path");
             }
-            // Fallback: usar cover de la serie
+
             if (thumb.isEmpty() && item.cover != null) thumb = item.cover;
 
             String url = AppState.get().account.host + "/series/" +
                 AppState.get().account.user + "/" +
                 AppState.get().account.pass + "/" + epId + "." + ext;
 
-            list.add(new EpisodeItem(epId, "Ep " + (i + 1) + " - " + title, url, plot, thumb));
+            String label = epNum.isEmpty() ?
+                "Ep " + (i + 1) + " — " + title :
+                "Ep " + epNum + " — " + title;
+
+            list.add(new EpisodeItem(epId, label, url, plot, thumb));
+        }
+
+        if (list.isEmpty()) {
+            Toast.makeText(this, "No se pudieron cargar los episodios", Toast.LENGTH_SHORT).show();
+            return;
         }
 
         rvEpisodes.setAdapter(new EpisodeAdapter(list, ep -> {
-            MediaItem epItem = new MediaItem(ep.id,
-                item.name + " - " + ep.title,
+            PlayerActivity.requestClose = true;
+            MediaItem epItem = new MediaItem(
+                ep.id, item.name + " — " + ep.title,
                 item.cover, ep.url, "", MediaItem.VOD);
             Intent intent = new Intent(this, PlayerActivity.class);
             intent.putExtra("item", epItem);
@@ -232,4 +269,22 @@ public class SeriesActivity extends AppCompatActivity {
             overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
         }));
     }
-}
+
+    private void showNoEpisodes() {
+        if (tvEpisodeCount != null)
+            tvEpisodeCount.setText("Sin episodios disponibles");
+    }
+
+    /** Busca el primer valor no vacío entre múltiples keys */
+    private String getStr(JsonObject obj, String... keys) {
+        for (String key : keys) {
+            if (obj == null || !obj.has(key) || obj.get(key).isJsonNull()) continue;
+            try {
+                String val = obj.get(key).getAsString().trim();
+                if (!val.isEmpty() && !val.equals("null") && !val.equals("0"))
+                    return val;
+            } catch (Exception ignored) {}
+        }
+        return "";
+    }
+
