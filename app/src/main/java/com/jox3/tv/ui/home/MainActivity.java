@@ -123,10 +123,23 @@ public class MainActivity extends AppCompatActivity {
                     updateIndexProgress();
                 });
 
-                // 2. Cargar cada categoría
-                loadAllCats(state.liveCats,   MediaItem.LIVE);
-                loadAllCats(state.vodCats,    MediaItem.VOD);
-                loadAllCats(state.seriesCats, MediaItem.SERIES);
+                // 2. Cargar cada categoría — Series NO se indexa completa
+                //    (demasiadas peticiones, se carga bajo demanda)
+                loadAllCats(state.liveCats, MediaItem.LIVE);
+                loadAllCats(state.vodCats,  MediaItem.VOD);
+                // Series: solo cargar primera categoría para el Home
+                if (!state.seriesCats.isEmpty() && !state.seriesCats.get(0).loaded) {
+                    try {
+                        Category c = state.seriesCats.get(0);
+                        c.items = state.api.getSeries(c.id);
+                        c.loaded = true;
+                        indexDone += state.seriesCats.size(); // marcar como completo
+                        mainHandler.post(this::updateIndexProgress);
+                    } catch (Exception ignored) {}
+                } else {
+                    indexDone += state.seriesCats.size();
+                    mainHandler.post(this::updateIndexProgress);
+                }
 
                 // 3. Indexación completa
                 indexComplete = true;
