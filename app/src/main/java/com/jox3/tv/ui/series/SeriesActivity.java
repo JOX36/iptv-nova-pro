@@ -120,13 +120,11 @@ public class SeriesActivity extends AppCompatActivity {
             catch (Exception e) { return a.compareTo(b); }
         });
 
-        // Contador total
         int total = 0;
         for (String s : seasons) total += toArray(seasonsMap.get(s)).size();
         if (tvEpisodeCount != null)
             tvEpisodeCount.setText(seasons.size() + " temp · " + total + " ep");
 
-        // Spinner
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
             android.R.layout.simple_spinner_item,
             seasons.stream().map(s -> "Temporada " + s).collect(Collectors.toList()));
@@ -145,14 +143,6 @@ public class SeriesActivity extends AppCompatActivity {
         loadEpisodes(finalMap, seasons.get(0));
     }
 
-    /**
-     * Convierte cualquier formato del API en {"1": [ep,...], "2": [...]}
-     * Soporta:
-     * - {"1": [ep,ep], "2": [ep]}       formato estándar
-     * - [ep1, ep2, ep3]                  array plano
-     * - {"1": {"0": ep, "1": ep}}        objeto con keys numéricos
-     * - array donde cada ep tiene campo "season"
-     */
     private JsonObject buildSeasonsMap(JsonElement el) {
         if (el == null || el.isJsonNull()) return null;
         try {
@@ -184,9 +174,6 @@ public class SeriesActivity extends AppCompatActivity {
         return null;
     }
 
-    /**
-     * Convierte cualquier elemento en JsonArray de episodios
-     */
     private JsonArray toArray(JsonElement el) {
         if (el == null || el.isJsonNull()) return new JsonArray();
         if (el.isJsonArray()) return el.getAsJsonArray();
@@ -221,13 +208,13 @@ public class SeriesActivity extends AppCompatActivity {
             if (!eps.get(i).isJsonObject()) continue;
             JsonObject ep = eps.get(i).getAsJsonObject();
 
-            String epId  = getStr(ep, "id", "stream_id", "episode_id");
+            String epId = getStr(ep, "id", "stream_id", "episode_id");
             if (epId.isEmpty()) continue;
 
             String title = getStr(ep, "title", "name", "episode_name");
             if (title.isEmpty()) title = "Episodio " + (i + 1);
 
-            String ext   = getStr(ep, "container_extension", "ext");
+            String ext = getStr(ep, "container_extension", "ext");
             if (ext.isEmpty()) ext = "mp4";
 
             String epNum = getStr(ep, "episode_num", "num");
@@ -271,20 +258,17 @@ public class SeriesActivity extends AppCompatActivity {
     }
 
     private void showNoEpisodes() {
-        if (tvEpisodeCount != null)
-            tvEpisodeCount.setText("Sin episodios disponibles");
+        if (tvEpisodeCount != null) tvEpisodeCount.setText("Sin episodios disponibles");
     }
 
-    /** Busca el primer valor no vacío entre múltiples keys */
     private String getStr(JsonObject obj, String... keys) {
         for (String key : keys) {
             if (obj == null || !obj.has(key) || obj.get(key).isJsonNull()) continue;
             try {
                 String val = obj.get(key).getAsString().trim();
-                if (!val.isEmpty() && !val.equals("null") && !val.equals("0"))
-                    return val;
+                if (!val.isEmpty() && !val.equals("null") && !val.equals("0")) return val;
             } catch (Exception ignored) {}
         }
         return "";
     }
-
+}
