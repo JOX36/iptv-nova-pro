@@ -40,7 +40,7 @@ public class SeriesActivity extends AppCompatActivity {
 
     private Spinner spinnerSeasons;
     private RecyclerView rvEpisodes;
-    private TextView tvTitle, tvPlot, tvRating, tvYear, tvEpisodeCount;
+    private TextView tvTitle, tvPlot, tvRating, tvYear;
     private ImageView ivCover;
 
     @Override
@@ -58,7 +58,6 @@ public class SeriesActivity extends AppCompatActivity {
         tvPlot         = findViewById(R.id.tv_plot);
         tvRating       = findViewById(R.id.tv_rating);
         tvYear         = findViewById(R.id.tv_year);
-        tvEpisodeCount = findViewById(R.id.tv_episode_count);
         ivCover        = findViewById(R.id.iv_cover);
         spinnerSeasons = findViewById(R.id.spinner_seasons);
         rvEpisodes     = findViewById(R.id.rv_episodes);
@@ -122,8 +121,7 @@ public class SeriesActivity extends AppCompatActivity {
 
         int total = 0;
         for (String s : seasons) total += toArray(seasonsMap.get(s)).size();
-        if (tvEpisodeCount != null)
-            tvEpisodeCount.setText(seasons.size() + " temp · " + total + " ep");
+
 
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
             android.R.layout.simple_spinner_item,
@@ -258,7 +256,7 @@ public class SeriesActivity extends AppCompatActivity {
     }
 
     private void showNoEpisodes() {
-        if (tvEpisodeCount != null) tvEpisodeCount.setText("Sin episodios disponibles");
+        Toast.makeText(this, "Sin episodios disponibles", Toast.LENGTH_SHORT).show();
     }
 
     private String getStr(JsonObject obj, String... keys) {
