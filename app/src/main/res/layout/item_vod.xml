@@ -47,20 +47,6 @@
                 android:background="@color/accent"
                 android:visibility="gone"/>
 
-            <!-- Indicador temporadas — solo series -->
-            <TextView
-                android:id="@+id/tv_seasons_badge"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="bottom|start"
-                android:layout_margin="4dp"
-                android:paddingStart="5dp" android:paddingEnd="5dp"
-                android:paddingTop="2dp" android:paddingBottom="2dp"
-                android:textSize="9sp" android:textStyle="bold"
-                android:textColor="#FFFFFF"
-                android:background="#CC8B5CF6"
-                android:visibility="gone"/>
-
             <!-- Progreso VOD -->
             <View
                 android:id="@+id/progress_bar"
@@ -68,6 +54,20 @@
                 android:layout_height="3dp"
                 android:layout_gravity="bottom|start"
                 android:background="@color/accent"
+                android:visibility="gone"/>
+
+            <!-- Indicador temporadas — badge abajo a la derecha -->
+            <TextView
+                android:id="@+id/tv_seasons_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom|end"
+                android:layout_margin="4dp"
+                android:paddingStart="6dp" android:paddingEnd="6dp"
+                android:paddingTop="2dp" android:paddingBottom="2dp"
+                android:textSize="10sp" android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:background="#CC8B5CF6"
                 android:visibility="gone"/>
 
             <!-- Favorito -->
