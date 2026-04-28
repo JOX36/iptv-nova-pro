@@ -61,7 +61,7 @@ public class VodDetailActivity extends AppCompatActivity {
         updateUI(item);
         exec.execute(() -> {
             try {
-                // 1. Info de la película (obtiene género, sinopsis, etc.)
+                // 1. Obtener info completa con género
                 MediaItem info = state.api.getVodInfo(item.id);
                 if (info.plot     != null && !info.plot.isEmpty())     item.plot     = info.plot;
                 if (info.genre    != null && !info.genre.isEmpty())    item.genre    = info.genre;
@@ -71,26 +71,32 @@ public class VodDetailActivity extends AppCompatActivity {
                 if (info.rating   != null && !info.rating.isEmpty())   item.rating   = info.rating;
                 if (info.cover    != null && !info.cover.isEmpty())    item.cover    = info.cover;
 
-                // 2. Cargar categorías VOD
+                // 2. Cargar categorías VOD si no existen
                 if (state.vodCats.isEmpty())
                     state.vodCats.addAll(state.api.getVodCats());
 
-                // 3. Cargar todas las categorías para tener items con género
-                for (Category c : state.vodCats) {
-                    if (!c.loaded) {
+                // 3. Cargar categorías hasta tener suficientes items para recomendar
+                //    Máximo 5 categorías para no tardar demasiado
+                int loaded = 0;
+                for (Category cat : state.vodCats) {
+                    if (loaded >= 5) break;
+                    if (!cat.loaded) {
                         try {
-                            c.items = state.api.getVodStreams(c.id);
-                            c.loaded = true;
+                            cat.items = state.api.getVodStreams(cat.id);
+                            cat.loaded = true;
                         } catch (Exception ignored) {}
                     }
+                    loaded++;
                 }
 
                 mainHandler.post(() -> {
+                    if (isDestroyed() || isFinishing()) return;
                     updateUI(item);
                     loadRecommendations();
                 });
             } catch (Exception e) {
                 mainHandler.post(() -> {
+                    if (isDestroyed() || isFinishing()) return;
                     updateUI(item);
                     loadRecommendations();
                 });
@@ -118,7 +124,7 @@ public class VodDetailActivity extends AppCompatActivity {
         tvGenre.setVisibility(m.genre != null && !m.genre.isEmpty() ? View.VISIBLE : View.GONE);
         tvCast.setVisibility(m.cast != null && !m.cast.isEmpty() ? View.VISIBLE : View.GONE);
         tvRating.setVisibility(m.rating != null && !m.rating.isEmpty() ? View.VISIBLE : View.GONE);
-        if (m.cover != null && !m.cover.isEmpty())
+        if (m.cover != null && !m.cover.isEmpty() && !isDestroyed())
             Glide.with(this).load(m.cover).centerCrop().into(ivCover);
 
         int pct = prefs.progressPct(m.id);
@@ -132,34 +138,60 @@ public class VodDetailActivity extends AppCompatActivity {
 
     private void loadRecommendations() {
         if (isDestroyed() || isFinishing()) return;
+
+        // Juntar todos los items disponibles
         List<MediaItem> all = new ArrayList<>();
         for (Category c : state.vodCats)
             if (c.loaded) all.addAll(c.items);
 
         if (all.isEmpty()) return;
 
-        List<MediaItem> recs;
+        List<MediaItem> recs = new ArrayList<>();
+        String recTitle = "MÁS PELÍCULAS";
 
-        // Por género primero
+        // Prioridad 1: mismo género exacto
         if (item.genre != null && !item.genre.isEmpty()) {
-            String g = item.genre.toLowerCase().split(",")[0].trim();
+            // Obtener géneros de la película actual (puede ser "Terror, Acción")
+            String[] genreArr = item.genre.toLowerCase().split(",");
+
+            // Buscar películas que compartan al menos un género
             recs = all.stream()
                 .filter(m -> !m.id.equals(item.id))
-                .filter(m -> m.genre != null && m.genre.toLowerCase().contains(g))
-                .limit(12).collect(Collectors.toList());
-        } else {
-            recs = new ArrayList<>();
+                .filter(m -> m.genre != null && !m.genre.isEmpty())
+                .filter(m -> {
+                    String mg = m.genre.toLowerCase();
+                    for (String g : genreArr) {
+                        if (mg.contains(g.trim())) return true;
+                    }
+                    return false;
+                })
+                .sorted((a, b) -> {
+                    // Priorizar las que comparten más géneros
+                    int aScore = 0, bScore = 0;
+                    for (String g : genreArr) {
+                        String gt = g.trim();
+                        if (a.genre != null && a.genre.toLowerCase().contains(gt)) aScore++;
+                        if (b.genre != null && b.genre.toLowerCase().contains(gt)) bScore++;
+                    }
+                    return Integer.compare(bScore, aScore);
+                })
+                .limit(12)
+                .collect(Collectors.toList());
+
+            if (!recs.isEmpty())
+                recTitle = "MÁS DE " + item.genre.split(",")[0].trim().toUpperCase();
         }
 
-        // Por categoría si no hay por género
+        // Prioridad 2: misma categoría
         if (recs.isEmpty()) {
             recs = all.stream()
                 .filter(m -> !m.id.equals(item.id))
                 .filter(m -> item.group != null && item.group.equals(m.group))
                 .limit(12).collect(Collectors.toList());
+            if (!recs.isEmpty()) recTitle = "DE LA MISMA CATEGORÍA";
         }
 
-        // Cualquiera si sigue vacío
+        // Prioridad 3: cualquier película
         if (recs.isEmpty()) {
             recs = all.stream()
                 .filter(m -> !m.id.equals(item.id))
@@ -170,17 +202,18 @@ public class VodDetailActivity extends AppCompatActivity {
 
         TextView tvRecTitle = findViewById(R.id.tv_rec_title);
         RecyclerView rvRecs = findViewById(R.id.rv_recommendations);
+        if (tvRecTitle == null || rvRecs == null) return;
+
+        tvRecTitle.setText(tvRecTitle.getText().toString().isEmpty() ? recTitle : recTitle);
         tvRecTitle.setVisibility(View.VISIBLE);
+        tvRecTitle.setText(recTitle);
         rvRecs.setVisibility(View.VISIBLE);
         rvRecs.setLayoutManager(new GridLayoutManager(this, 3));
-        rvRecs.setAdapter(new RecommendationAdapter(recs, recItem -> {
-            startActivity(new Intent(this, VodDetailActivity.class)
-                .putExtra("item", recItem));
-        }));
+        rvRecs.setAdapter(new RecommendationAdapter(recs, recItem ->
+            startActivity(new Intent(this, VodDetailActivity.class).putExtra("item", recItem))));
     }
 
     private void playVod() {
-        // Cerrar PiP si está activo
         PlayerActivity.requestClose = true;
         Intent intent = new Intent(this, PlayerActivity.class);
         intent.putExtra("item", item);
