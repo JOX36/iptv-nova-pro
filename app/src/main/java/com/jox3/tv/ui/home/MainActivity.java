@@ -538,21 +538,5 @@ public class MainActivity extends AppCompatActivity {
     private void toast(String msg) { Toast.makeText(this, msg, Toast.LENGTH_SHORT).show(); }
     private void goLogin() { startActivity(new Intent(this, LoginActivity.class)); finish(); }
 
-    @Override
-    public void onBackPressed() {
-        if (isHomeMode) {
-            new androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("Salir")
-                .setMessage("¿Deseas salir de JOX3 TV?")
-                .setPositiveButton("Salir", (d, w) -> finish())
-                .setNegativeButton("Cancelar", null)
-                .show();
-        } else {
-            isHomeMode = true;
-            hideHome();
-            showHome();
-            ((com.google.android.material.bottomnavigation.BottomNavigationView)
-                findViewById(R.id.bottom_nav)).setSelectedItemId(R.id.nav_home);
-        }
-    }
+    
 }
