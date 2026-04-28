@@ -357,8 +357,10 @@ public class MainActivity extends AppCompatActivity {
                     Toast.LENGTH_SHORT).show();
             }
         });
-        rvContent.setLayoutManager(new GridLayoutManager(this, 2));
+        GridLayoutManager gridMgr = new GridLayoutManager(this, 2);
+        rvContent.setLayoutManager(gridMgr);
         rvContent.setAdapter(mediaAdapter);
+        mediaAdapter.attachToGrid(gridMgr, 2);
 
         BottomNavigationView nav = findViewById(R.id.bottom_nav);
         if (nav != null) nav.setOnItemSelectedListener(item -> {
@@ -421,7 +423,10 @@ public class MainActivity extends AppCompatActivity {
             @Override public void onClick(MediaItem item) { openItem(item); }
             @Override public void onFav(MediaItem item, boolean isFav) {}
         });
+        GridLayoutManager gm = new GridLayoutManager(this, 2);
+        rvContent.setLayoutManager(gm);
         rvContent.setAdapter(mediaAdapter);
+        mediaAdapter.attachToGrid(gm, 2);
         loadCats(type);
     }
 
@@ -513,6 +518,41 @@ public class MainActivity extends AppCompatActivity {
         if (show) progressTop.setIndeterminate(true);
     }
 
+    @Override
+    public void onBackPressed() {
+        if (isHomeMode) {
+            new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Salir")
+                .setMessage("¿Deseas salir de JOX3 TV?")
+                .setPositiveButton("Salir", (d, w) -> finish())
+                .setNegativeButton("Cancelar", null)
+                .show();
+        } else {
+            // Si no estamos en Home, volver al Home
+            isHomeMode = true;
+            ((com.google.android.material.bottomnavigation.BottomNavigationView)
+                findViewById(R.id.bottom_nav)).setSelectedItemId(R.id.nav_home);
+        }
+    }
+
     private void toast(String msg) { Toast.makeText(this, msg, Toast.LENGTH_SHORT).show(); }
     private void goLogin() { startActivity(new Intent(this, LoginActivity.class)); finish(); }
+
+    @Override
+    public void onBackPressed() {
+        if (isHomeMode) {
+            new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Salir")
+                .setMessage("¿Deseas salir de JOX3 TV?")
+                .setPositiveButton("Salir", (d, w) -> finish())
+                .setNegativeButton("Cancelar", null)
+                .show();
+        } else {
+            isHomeMode = true;
+            hideHome();
+            showHome();
+            ((com.google.android.material.bottomnavigation.BottomNavigationView)
+                findViewById(R.id.bottom_nav)).setSelectedItemId(R.id.nav_home);
+        }
+    }
 }
