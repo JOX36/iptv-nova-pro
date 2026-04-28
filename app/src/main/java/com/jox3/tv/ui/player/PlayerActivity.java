@@ -302,9 +302,7 @@ public class PlayerActivity extends AppCompatActivity {
 
     private void setupButtonsForType() {
         boolean isLive = item.type.equals(MediaItem.LIVE);
-        playerView.setResizeMode(isLive ?
-            AspectRatioFrameLayout.RESIZE_MODE_FILL :
-            AspectRatioFrameLayout.RESIZE_MODE_FIT);
+        playerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FILL);
         layoutLiveBtns.setVisibility(isLive ? View.VISIBLE : View.GONE);
         layoutVodBtns.setVisibility(isLive ? View.GONE : View.VISIBLE);
         layoutSeek.setVisibility(isLive ? View.GONE : View.VISIBLE);
