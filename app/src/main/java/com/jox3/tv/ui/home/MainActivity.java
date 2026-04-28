@@ -11,7 +11,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -49,14 +48,6 @@ public class MainActivity extends AppCompatActivity {
     private boolean isSearchMode = false;
     private boolean isHomeMode = true;
 
-    // Indexación
-    private boolean indexComplete = false;
-    private int indexTotal = 0;
-    private int indexDone = 0;
-    private View layoutIndexProgress;
-    private ProgressBar progressIndex;
-    private TextView tvIndexStatus, tvIndexPct;
-
     private DrawerLayout drawerLayout;
     private CategoryAdapter catAdapter;
     private MediaAdapter mediaAdapter;
@@ -77,7 +68,7 @@ public class MainActivity extends AppCompatActivity {
 
     private AppPrefs prefs;
     private AppState state;
-    private final ExecutorService exec = Executors.newFixedThreadPool(4);
+    private final ExecutorService exec = Executors.newFixedThreadPool(3);
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final Handler searchHandler = new Handler(Looper.getMainLooper());
     private Runnable searchRunnable;
@@ -91,114 +82,12 @@ public class MainActivity extends AppCompatActivity {
         if (state.account == null) { goLogin(); return; }
         initViews();
         showHome();
-        startIndexing(); // Iniciar indexación en background al entrar
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         if (isHomeMode && homeView != null) refreshHome();
-    }
-
-    // ── INDEXACIÓN ──
-    private void startIndexing() {
-        if (indexComplete) return;
-        exec.execute(() -> {
-            try {
-                // 1. Cargar categorías de los 3 tipos
-                if (state.liveCats.isEmpty())
-                    state.liveCats.addAll(state.api.getLiveCats());
-                if (state.vodCats.isEmpty())
-                    state.vodCats.addAll(state.api.getVodCats());
-                if (state.seriesCats.isEmpty())
-                    state.seriesCats.addAll(state.api.getSeriesCats());
-
-                // Contar DESPUÉS de cargar las listas — para incluir series
-                indexTotal = state.liveCats.size() + state.vodCats.size() + state.seriesCats.size();
-                indexDone = 0;
-
-                mainHandler.post(() -> {
-                    layoutIndexProgress.setVisibility(View.VISIBLE);
-                    progressIndex.setMax(indexTotal > 0 ? indexTotal : 1);
-                    updateIndexProgress();
-                });
-
-                // 2. Cargar Live y VOD completos
-                loadAllCats(state.liveCats, MediaItem.LIVE);
-                loadAllCats(state.vodCats,  MediaItem.VOD);
-
-                // 3. Series — cargar primeras 3 categorías para Home y búsqueda básica
-                //    El resto se carga bajo demanda cuando el usuario navega
-                int seriesLoaded = 0;
-                for (Category sc : state.seriesCats) {
-                    if (isDestroyed()) break;
-                    if (!sc.loaded) {
-                        try {
-                            sc.items = state.api.getSeries(sc.id);
-                            sc.loaded = true;
-                            seriesLoaded++;
-                        } catch (Exception ignored) {}
-                    }
-                    indexDone++;
-                    mainHandler.post(this::updateIndexProgress);
-                    // Después de 3 categorías cargadas, pausar indexación de series
-                    // El resto sigue en segundo plano pero no bloquea
-                    if (seriesLoaded >= 3) {
-                        // Marcar el resto como "saltado" para que el progreso llegue al 100%
-                        indexDone += (state.seriesCats.size() - (state.seriesCats.indexOf(sc) + 1));
-                        mainHandler.post(this::updateIndexProgress);
-                        break;
-                    }
-                }
-
-                // 3. Indexación completa
-                indexComplete = true;
-                mainHandler.post(() -> {
-                    tvIndexStatus.setText("Contenido indexado");
-                    tvIndexPct.setText("✓");
-                    progressIndex.setProgress(indexTotal);
-                    // Ocultar después de 2 segundos
-                    mainHandler.postDelayed(() ->
-                        layoutIndexProgress.setVisibility(View.GONE), 2000);
-                    // Refrescar home con contenido completo
-                    if (isHomeMode && homeView != null) refreshHome();
-                });
-
-            } catch (Exception e) {
-                mainHandler.post(() -> {
-                    tvIndexStatus.setText("Error indexando");
-                    mainHandler.postDelayed(() ->
-                        layoutIndexProgress.setVisibility(View.GONE), 3000);
-                });
-            }
-        });
-    }
-
-    private void loadAllCats(List<Category> cats, String type) {
-        for (Category c : cats) {
-            if (isDestroyed()) return;
-            if (!c.loaded) {
-                try {
-                    if (type.equals(MediaItem.LIVE))        c.items = state.api.getLiveStreams(c.id);
-                    else if (type.equals(MediaItem.VOD))    c.items = state.api.getVodStreams(c.id);
-                    else                                    c.items = state.api.getSeries(c.id);
-                    c.loaded = true;
-                } catch (Exception ignored) {}
-            }
-            indexDone++;
-            mainHandler.post(this::updateIndexProgress);
-        }
-    }
-
-    private void updateIndexProgress() {
-        if (indexTotal <= 0) return;
-        int pct = (int)(indexDone * 100f / indexTotal);
-        progressIndex.setProgress(indexDone);
-        tvIndexPct.setText(pct + "%");
-        int liveCount = (int) state.liveCats.stream().filter(c -> c.loaded).count();
-        int vodCount  = (int) state.vodCats.stream().filter(c -> c.loaded).count();
-        int serCount  = (int) state.seriesCats.stream().filter(c -> c.loaded).count();
-        tvIndexStatus.setText("Live: " + liveCount + " · VOD: " + vodCount + " · Series: " + serCount);
     }
 
     // ── HOME ──
@@ -219,6 +108,7 @@ public class MainActivity extends AppCompatActivity {
             sectionSeries   = homeView.findViewById(R.id.section_series);
             rowSeries       = homeView.findViewById(R.id.row_series);
             homeEmpty       = homeView.findViewById(R.id.home_empty);
+
             homeView.findViewById(R.id.tv_live_more).setOnClickListener(v -> {
                 isHomeMode = false; hideHome(); switchType(MediaItem.LIVE);
                 ((BottomNavigationView) findViewById(R.id.bottom_nav)).setSelectedItemId(R.id.nav_live);
@@ -234,6 +124,7 @@ public class MainActivity extends AppCompatActivity {
         }
         homeView.setVisibility(View.VISIBLE);
         refreshHome();
+        loadHomeContent();
     }
 
     private void hideHome() {
@@ -245,7 +136,7 @@ public class MainActivity extends AppCompatActivity {
     private void refreshHome() {
         if (homeView == null || isDestroyed()) return;
 
-        // Continuar viendo — historial con badge y progreso
+        // Continuar viendo
         List<MediaItem> hist = prefs.history();
         if (!hist.isEmpty()) {
             sectionContinue.setVisibility(View.VISIBLE);
@@ -255,11 +146,10 @@ public class MainActivity extends AppCompatActivity {
                 addVodCard(rowContinue, m, true, true);
         }
 
-        // Live
+        // Live desde caché o memoria
         List<MediaItem> liveItems = new ArrayList<>();
         for (Category c : state.liveCats)
             if (c.loaded && !c.items.isEmpty()) { liveItems.addAll(c.items); break; }
-        // Caché: si no hay en memoria, usar guardado
         if (liveItems.isEmpty()) liveItems = prefs.getCachedHome("live");
         if (!liveItems.isEmpty()) {
             sectionLive.setVisibility(View.VISIBLE);
@@ -267,10 +157,10 @@ public class MainActivity extends AppCompatActivity {
             rowLive.removeAllViews();
             List<MediaItem> show = liveItems.subList(0, Math.min(15, liveItems.size()));
             for (MediaItem m : show) addChannelCard(rowLive, m);
-            prefs.saveCachedHome("live", show); // Guardar para próxima vez
+            prefs.saveCachedHome("live", show);
         }
 
-        // VOD
+        // VOD desde caché o memoria
         List<MediaItem> vodItems = new ArrayList<>();
         for (Category c : state.vodCats)
             if (c.loaded && !c.items.isEmpty()) { vodItems.addAll(c.items); break; }
@@ -284,7 +174,7 @@ public class MainActivity extends AppCompatActivity {
             prefs.saveCachedHome("vod", show);
         }
 
-        // Series
+        // Series desde caché o memoria
         List<MediaItem> seriesItems = new ArrayList<>();
         for (Category c : state.seriesCats)
             if (c.loaded && !c.items.isEmpty()) { seriesItems.addAll(c.items); break; }
@@ -297,6 +187,38 @@ public class MainActivity extends AppCompatActivity {
             for (MediaItem m : show) addVodCard(rowSeries, m, false, false);
             prefs.saveCachedHome("series", show);
         }
+    }
+
+    // Carga contenido para el Home en background
+    private void loadHomeContent() {
+        exec.execute(() -> {
+            try {
+                if (state.liveCats.isEmpty())
+                    state.liveCats.addAll(state.api.getLiveCats());
+                if (!state.liveCats.isEmpty() && !state.liveCats.get(0).loaded) {
+                    state.liveCats.get(0).items = state.api.getLiveStreams(state.liveCats.get(0).id);
+                    state.liveCats.get(0).loaded = true;
+                }
+
+                if (state.vodCats.isEmpty())
+                    state.vodCats.addAll(state.api.getVodCats());
+                if (!state.vodCats.isEmpty() && !state.vodCats.get(0).loaded) {
+                    state.vodCats.get(0).items = state.api.getVodStreams(state.vodCats.get(0).id);
+                    state.vodCats.get(0).loaded = true;
+                }
+
+                if (state.seriesCats.isEmpty())
+                    state.seriesCats.addAll(state.api.getSeriesCats());
+                if (!state.seriesCats.isEmpty() && !state.seriesCats.get(0).loaded) {
+                    state.seriesCats.get(0).items = state.api.getSeries(state.seriesCats.get(0).id);
+                    state.seriesCats.get(0).loaded = true;
+                }
+
+                mainHandler.post(() -> {
+                    if (!isDestroyed() && isHomeMode) refreshHome();
+                });
+            } catch (Exception ignored) {}
+        });
     }
 
     private void addChannelCard(LinearLayout row, MediaItem m) {
@@ -314,16 +236,15 @@ public class MainActivity extends AppCompatActivity {
 
     private void addVodCard(LinearLayout row, MediaItem m, boolean showBadge, boolean showProgress) {
         View card = LayoutInflater.from(this).inflate(R.layout.item_home_vod, row, false);
-        ImageView iv = card.findViewById(R.id.iv_cover);
-        TextView ph  = card.findViewById(R.id.tv_ph);
+        ImageView iv    = card.findViewById(R.id.iv_cover);
+        TextView ph     = card.findViewById(R.id.tv_ph);
         TextView tvName = card.findViewById(R.id.tv_name);
         TextView badge  = card.findViewById(R.id.tv_type_badge);
-        View progBg  = card.findViewById(R.id.progress_bg);
-        View progBar = card.findViewById(R.id.progress_bar);
+        View progBg     = card.findViewById(R.id.progress_bg);
+        View progBar    = card.findViewById(R.id.progress_bar);
 
         tvName.setText(m.name);
 
-        // Badge — solo en continuar viendo
         if (showBadge && m.type != null) {
             badge.setVisibility(View.VISIBLE);
             badge.setText(m.type.equals(MediaItem.LIVE) ? "VIVO" :
@@ -335,13 +256,11 @@ public class MainActivity extends AppCompatActivity {
             badge.setVisibility(View.GONE);
         }
 
-        // Cover
         String thumb = m.thumb();
         if (thumb != null && !thumb.isEmpty()) {
             Glide.with(this).load(thumb).centerCrop().into(iv);
         } else { iv.setVisibility(View.GONE); ph.setVisibility(View.VISIBLE); }
 
-        // Progreso — solo en continuar viendo
         if (showProgress) {
             int pct = prefs.progressPct(m.id);
             if (pct > 2 && pct < 95) {
@@ -359,50 +278,23 @@ public class MainActivity extends AppCompatActivity {
         row.addView(card);
     }
 
-    // ── BÚSQUEDA ──
+    // ── BÚSQUEDA — solo en lo cargado ──
     private void doSearch(String q) {
         if (q.trim().isEmpty()) return;
         String ql = q.toLowerCase();
 
-        if (!indexComplete) {
-            // Calcular progreso
-            int loaded = (int)(state.liveCats.stream().filter(c->c.loaded).count()
-                + state.vodCats.stream().filter(c->c.loaded).count()
-                + state.seriesCats.stream().filter(c->c.loaded).count());
-            int pct = indexTotal > 0 ? (int)(loaded * 100f / indexTotal) : 0;
-            if (tvSearchResults != null) {
-                tvSearchResults.setText("⏳ Indexando " + pct + "%... búsqueda parcial");
-                tvSearchResults.setVisibility(View.VISIBLE);
-            }
-        }
-
-        // Buscar en lo que ya está cargado
         List<MediaItem> liveR   = searchIn(state.liveCats,   ql);
         List<MediaItem> vodR    = searchIn(state.vodCats,    ql);
         List<MediaItem> seriesR = searchIn(state.seriesCats, ql);
 
-        List<MediaItem> all = new ArrayList<>();
-        all.addAll(liveR);
-        all.addAll(vodR);
-        all.addAll(seriesR);
+        // Usar setSearchResults para mostrar grupos con headers
+        mediaAdapter.setSearchResults(liveR, vodR, seriesR);
 
-        String summary;
-        if (all.isEmpty() && !indexComplete) {
-            summary = "⏳ Aún indexando... intenta en un momento";
-        } else if (all.isEmpty()) {
-            summary = "Sin resultados para \"" + q + "\"";
-        } else {
-            StringBuilder sb = new StringBuilder();
-            if (!liveR.isEmpty())   sb.append("📺 Live: ").append(liveR.size()).append("  ");
-            if (!vodR.isEmpty())    sb.append("🎬 Películas: ").append(vodR.size()).append("  ");
-            if (!seriesR.isEmpty()) sb.append("🎭 Series: ").append(seriesR.size());
-            summary = sb.toString().trim();
-            if (!indexComplete) summary += " (indexando...)";
-        }
-
-        mediaAdapter.setItems(all);
+        int total = liveR.size() + vodR.size() + seriesR.size();
         if (tvSearchResults != null) {
-            tvSearchResults.setText(summary);
+            tvSearchResults.setText(total == 0 ?
+                "Sin resultados para \"" + q + "\"" :
+                total + " resultado" + (total > 1 ? "s" : ""));
             tvSearchResults.setVisibility(View.VISIBLE);
         }
         showProgress(false);
@@ -420,19 +312,15 @@ public class MainActivity extends AppCompatActivity {
 
     // ── VISTAS ──
     private void initViews() {
-        drawerLayout       = findViewById(R.id.drawer_layout);
-        progressTop        = findViewById(R.id.progress_top);
-        swipeRefresh       = findViewById(R.id.swipe_refresh);
-        etSearch           = findViewById(R.id.et_search);
-        tvAccount          = findViewById(R.id.tv_account);
-        rvCats             = findViewById(R.id.rv_categories);
-        rvContent          = findViewById(R.id.rv_content);
-        tvSearchResults    = findViewById(R.id.tv_search_results);
-        contentContainer   = findViewById(R.id.content_container);
-        layoutIndexProgress= findViewById(R.id.layout_index_progress);
-        progressIndex      = findViewById(R.id.progress_index);
-        tvIndexStatus      = findViewById(R.id.tv_index_status);
-        tvIndexPct         = findViewById(R.id.tv_index_pct);
+        drawerLayout    = findViewById(R.id.drawer_layout);
+        progressTop     = findViewById(R.id.progress_top);
+        swipeRefresh    = findViewById(R.id.swipe_refresh);
+        etSearch        = findViewById(R.id.et_search);
+        tvAccount       = findViewById(R.id.tv_account);
+        rvCats          = findViewById(R.id.rv_categories);
+        rvContent       = findViewById(R.id.rv_content);
+        tvSearchResults = findViewById(R.id.tv_search_results);
+        contentContainer = findViewById(R.id.content_container);
 
         tvAccount.setText(state.account.displayHost());
         tvAccount.setOnClickListener(v -> goLogin());
@@ -511,7 +399,7 @@ public class MainActivity extends AppCompatActivity {
         swipeRefresh.setColorSchemeColors(getColor(R.color.accent));
         swipeRefresh.setProgressBackgroundColorSchemeColor(getColor(R.color.bg2));
         swipeRefresh.setOnRefreshListener(() -> {
-            if (isHomeMode) { refreshHome(); swipeRefresh.setRefreshing(false); return; }
+            if (isHomeMode) { loadHomeContent(); swipeRefresh.setRefreshing(false); return; }
             if (!isSearchMode && selectedCat != null) {
                 selectedCat.loaded = false; loadItems(selectedCat);
             }
