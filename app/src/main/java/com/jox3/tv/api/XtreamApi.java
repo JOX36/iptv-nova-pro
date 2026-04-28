@@ -30,7 +30,6 @@ public class XtreamApi {
 
     public void setAccount(Account a) { acc = a; }
 
-    // ── HTTP ──
     public String get(String url) throws IOException {
         Request r = new Request.Builder().url(url)
             .header("User-Agent", "Mozilla/5.0").build();
@@ -86,11 +85,11 @@ public class XtreamApi {
             JsonArray arr = JsonParser.parseString(json).getAsJsonArray();
             for (int i = 0; i < arr.size(); i++) {
                 JsonObject o = arr.get(i).getAsJsonObject();
-                String id   = o.get("stream_id").getAsString();
-                String name = o.has("name") ? o.get("name").getAsString() : "?";
-                String logo = o.has("stream_icon") ? o.get("stream_icon").getAsString() : "";
-                String url  = acc.host + "/live/" + acc.user + "/" + acc.pass + "/" + id + ".m3u8";
-                String group = o.has("category_id") ? o.get("category_id").getAsString() : "";
+                String id    = o.get("stream_id").getAsString();
+                String name  = o.has("name")         ? o.get("name").getAsString()         : "?";
+                String logo  = o.has("stream_icon")  ? o.get("stream_icon").getAsString()  : "";
+                String url   = acc.host + "/live/" + acc.user + "/" + acc.pass + "/" + id + ".m3u8";
+                String group = o.has("category_id")  ? o.get("category_id").getAsString()  : "";
                 list.add(new MediaItem(id, name, logo, url, group, MediaItem.LIVE));
             }
         } catch (Exception ignored) {}
@@ -104,14 +103,16 @@ public class XtreamApi {
             for (int i = 0; i < arr.size(); i++) {
                 JsonObject o = arr.get(i).getAsJsonObject();
                 String id     = o.get("stream_id").getAsString();
-                String name   = o.has("name")         ? o.get("name").getAsString()         : "?";
-                String cover  = o.has("stream_icon")  ? o.get("stream_icon").getAsString()  : "";
-                String rating = o.has("rating")        ? o.get("rating").getAsString()       : "";
+                String name   = o.has("name")        ? o.get("name").getAsString()        : "?";
+                String cover  = o.has("stream_icon") ? o.get("stream_icon").getAsString() : "";
+                String rating = o.has("rating")      ? o.get("rating").getAsString()      : "";
+                String genre  = o.has("genre")       ? o.get("genre").getAsString()       : "";
                 String url    = acc.host + "/movie/" + acc.user + "/" + acc.pass + "/" + id + ".mp4";
-                String group  = o.has("category_id")  ? o.get("category_id").getAsString()  : "";
+                String group  = o.has("category_id") ? o.get("category_id").getAsString() : "";
                 MediaItem item = new MediaItem(id, name, cover, url, group, MediaItem.VOD);
                 item.cover  = cover;
                 item.rating = rating;
+                item.genre  = genre; // guardar género desde la lista
                 list.add(item);
             }
         } catch (Exception ignored) {}
@@ -132,6 +133,13 @@ public class XtreamApi {
                 MediaItem item = new MediaItem(id, name, cover, "", group, MediaItem.SERIES);
                 item.cover  = cover;
                 item.rating = rating;
+                // Leer número de temporadas — campo num_seasons del API Xtream
+                if (o.has("num_seasons") && !o.get("num_seasons").isJsonNull()) {
+                    try { item.seasons = o.get("num_seasons").getAsInt(); }
+                    catch (Exception ignored2) { item.seasons = 1; }
+                } else {
+                    item.seasons = 1;
+                }
                 list.add(item);
             }
         } catch (Exception ignored) {}
