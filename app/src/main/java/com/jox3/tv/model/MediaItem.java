@@ -22,6 +22,7 @@ public class MediaItem implements Serializable {
     public String director;
     public String duration;
     public boolean isFav;
+    public int seasons; // número de temporadas para series
 
     public MediaItem() {}
 
