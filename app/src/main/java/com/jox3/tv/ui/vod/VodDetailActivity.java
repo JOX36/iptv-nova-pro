@@ -147,7 +147,7 @@ public class VodDetailActivity extends AppCompatActivity {
         if (all.isEmpty()) return;
 
         List<MediaItem> recs = new ArrayList<>();
-        String recTitle = "MÁS PELÍCULAS";
+        String recTitle = "TE PUEDE INTERESAR";
 
         // Prioridad 1: mismo género exacto
         if (item.genre != null && !item.genre.isEmpty()) {
@@ -178,8 +178,7 @@ public class VodDetailActivity extends AppCompatActivity {
                 .limit(12)
                 .collect(Collectors.toList());
 
-            if (!recs.isEmpty())
-                recTitle = "MÁS DE " + item.genre.split(",")[0].trim().toUpperCase();
+            // título siempre "TE PUEDE INTERESAR"
         }
 
         // Prioridad 2: misma categoría
@@ -188,7 +187,7 @@ public class VodDetailActivity extends AppCompatActivity {
                 .filter(m -> !m.id.equals(item.id))
                 .filter(m -> item.group != null && item.group.equals(m.group))
                 .limit(12).collect(Collectors.toList());
-            if (!recs.isEmpty()) recTitle = "DE LA MISMA CATEGORÍA";
+
         }
 
         // Prioridad 3: cualquier película
@@ -204,9 +203,8 @@ public class VodDetailActivity extends AppCompatActivity {
         RecyclerView rvRecs = findViewById(R.id.rv_recommendations);
         if (tvRecTitle == null || rvRecs == null) return;
 
-        tvRecTitle.setText(tvRecTitle.getText().toString().isEmpty() ? recTitle : recTitle);
-        tvRecTitle.setVisibility(View.VISIBLE);
         tvRecTitle.setText(recTitle);
+        tvRecTitle.setVisibility(View.VISIBLE);
         rvRecs.setVisibility(View.VISIBLE);
         rvRecs.setLayoutManager(new GridLayoutManager(this, 3));
         rvRecs.setAdapter(new RecommendationAdapter(recs, recItem ->
