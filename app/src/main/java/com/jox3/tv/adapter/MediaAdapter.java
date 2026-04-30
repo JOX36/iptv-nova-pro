@@ -12,13 +12,6 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.jox3.tv.R;
-import com.jox3.tv.model.EpgProgram;
-import com.jox3.tv.util.AppState;
-import android.os.Handler;
-import android.os.Looper;
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import com.jox3.tv.model.MediaItem;
 import com.jox3.tv.util.AppPrefs;
 
@@ -49,8 +42,6 @@ public class MediaAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     private final AppPrefs prefs;
     private final Listener listener;
     private boolean searchMode = false;
-    private final ExecutorService epgExec = Executors.newFixedThreadPool(3);
-    private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     public MediaAdapter(String type, AppPrefs prefs, Listener l) {
         this.type = type; this.prefs = prefs; this.listener = l;
@@ -232,50 +223,4 @@ public class MediaAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         }
     }
 
-    private void loadEpgForChannel(com.jox3.tv.model.MediaItem item, ItemVH h) {
-        android.widget.TextView tvEpgTitle = h.itemView.findViewById(R.id.tv_epg_title);
-        android.widget.TextView tvEpgNext  = h.itemView.findViewById(R.id.tv_epg_next);
-        View layoutEpgProgress = h.itemView.findViewById(R.id.layout_epg_progress);
-        View epgProgressBar    = h.itemView.findViewById(R.id.epg_progress_bar);
-
-        if (tvEpgTitle == null) return;
-
-        epgExec.execute(() -> {
-            try {
-                List<EpgProgram> programs = AppState.get().api.getShortEpg(item.id);
-                mainHandler.post(() -> {
-                    if (programs.isEmpty()) return;
-                    EpgProgram current = null;
-                    EpgProgram next    = null;
-                    for (int i = 0; i < programs.size(); i++) {
-                        if (programs.get(i).isNow()) {
-                            current = programs.get(i);
-                            if (i + 1 < programs.size()) next = programs.get(i + 1);
-                            break;
-                        }
-                    }
-                    if (current == null && !programs.isEmpty()) current = programs.get(0);
-
-                    if (current != null) {
-                        tvEpgTitle.setText(current.title);
-                        tvEpgTitle.setVisibility(View.VISIBLE);
-
-                        if (layoutEpgProgress != null && epgProgressBar != null) {
-                            layoutEpgProgress.setVisibility(View.VISIBLE);
-                            int pct = current.progressPct();
-                            epgProgressBar.post(() -> {
-                                ViewGroup.LayoutParams lp = epgProgressBar.getLayoutParams();
-                                lp.width = (int)(layoutEpgProgress.getWidth() * pct / 100f);
-                                epgProgressBar.setLayoutParams(lp);
-                            });
-                        }
-                    }
-                    if (next != null && tvEpgNext != null) {
-                        tvEpgNext.setText("▶ " + next.timeRange() + " " + next.title);
-                        tvEpgNext.setVisibility(View.VISIBLE);
-                    }
-                });
-            } catch (Exception ignored) {}
-        });
-    }
 }
