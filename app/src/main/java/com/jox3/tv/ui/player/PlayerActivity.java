@@ -38,6 +38,8 @@ import androidx.media3.ui.AspectRatioFrameLayout;
 import androidx.media3.ui.PlayerView;
 
 import com.jox3.tv.R;
+import com.jox3.tv.adapter.EpgAdapter;
+import com.jox3.tv.model.EpgProgram;
 import com.jox3.tv.model.MediaItem;
 import com.jox3.tv.util.AppPrefs;
 import com.jox3.tv.util.AppState;
@@ -61,7 +63,9 @@ public class PlayerActivity extends AppCompatActivity {
     private TextView tvName, tvResolution, tvStatus, btnBack, btnFav;
 
     // Live buttons
-    private Button btnPrev, btnNext, btnPipLive, btnStop;
+    private Button btnPrev, btnNext, btnPipLive, btnStop, btnEpg;
+    private LinearLayout epgPanel;
+    private boolean epgVisible = false;
 
     // VOD/Series buttons
     private Button btnPlayPause, btnRewind, btnForward;
@@ -258,6 +262,7 @@ public class PlayerActivity extends AppCompatActivity {
         btnPrev.setOnClickListener(v -> navigateChannel(-1));
         btnNext.setOnClickListener(v -> navigateChannel(1));
         btnPipLive.setOnClickListener(v -> enterPip());
+        if (btnEpg != null) btnEpg.setOnClickListener(v -> toggleEpg());
         btnStop.setOnClickListener(v -> exitPlayer());
 
         // VOD/Series
@@ -605,6 +610,39 @@ public class PlayerActivity extends AppCompatActivity {
     private void saveProgress() {
         if (player != null && item != null && !item.type.equals(MediaItem.LIVE))
             prefs.saveProgress(item.id, player.getCurrentPosition(), player.getDuration());
+    }
+
+    private void toggleEpg() {
+        if (epgPanel == null) return;
+        epgVisible = !epgVisible;
+        epgPanel.setVisibility(epgVisible ? View.VISIBLE : View.GONE);
+        if (epgVisible && item != null) loadEpg();
+    }
+
+    private void loadEpg() {
+        androidx.recyclerview.widget.RecyclerView rvEpg = findViewById(R.id.rv_epg);
+        if (rvEpg == null) return;
+        handler.post(() -> {
+            new Thread(() -> {
+                try {
+                    java.util.List<EpgProgram> programs =
+                        AppState.get().api.getFullEpg(item.id);
+                    runOnUiThread(() -> {
+                        if (programs.isEmpty()) return;
+                        rvEpg.setLayoutManager(
+                            new androidx.recyclerview.widget.LinearLayoutManager(this));
+                        rvEpg.setAdapter(new EpgAdapter(programs));
+                        // Scroll al programa actual
+                        for (int i = 0; i < programs.size(); i++) {
+                            if (programs.get(i).isNow()) {
+                                rvEpg.scrollToPosition(Math.max(0, i - 1));
+                                break;
+                            }
+                        }
+                    });
+                } catch (Exception ignored) {}
+            }).start();
+        });
     }
 
     private void exitPlayer() {
