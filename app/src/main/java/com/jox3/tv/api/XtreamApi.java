@@ -107,12 +107,28 @@ public class XtreamApi {
                 String cover  = o.has("stream_icon") ? o.get("stream_icon").getAsString() : "";
                 String rating = o.has("rating")      ? o.get("rating").getAsString()      : "";
                 String genre  = o.has("genre")       ? o.get("genre").getAsString()       : "";
-                String url    = acc.host + "/movie/" + acc.user + "/" + acc.pass + "/" + id + ".mp4";
                 String group  = o.has("category_id") ? o.get("category_id").getAsString() : "";
+
+                // Usar container_extension del API — es la extensión real del archivo
+                String ext = "mp4";
+                if (o.has("container_extension") && !o.get("container_extension").isJsonNull()) {
+                    String e = o.get("container_extension").getAsString().trim();
+                    if (!e.isEmpty()) ext = e;
+                }
+
+                // Usar direct_source si está disponible, si no construir URL estándar
+                String directSource = "";
+                if (o.has("direct_source") && !o.get("direct_source").isJsonNull())
+                    directSource = o.get("direct_source").getAsString().trim();
+
+                String url = (!directSource.isEmpty() && directSource.startsWith("http")) ?
+                    directSource :
+                    acc.host + "/movie/" + acc.user + "/" + acc.pass + "/" + id + "." + ext;
+
                 MediaItem item = new MediaItem(id, name, cover, url, group, MediaItem.VOD);
                 item.cover  = cover;
                 item.rating = rating;
-                item.genre  = genre; // guardar género desde la lista
+                item.genre  = genre;
                 list.add(item);
             }
         } catch (Exception ignored) {}
