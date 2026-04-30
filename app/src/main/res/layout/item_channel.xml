@@ -14,53 +14,52 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- Imagen del canal -->
+        <!-- Logo canal -->
         <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="110dp">
+            android:layout_height="wrap_content">
 
             <ImageView
                 android:id="@+id/iv_logo"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:scaleType="centerCrop"
+                android:layout_height="100dp"
+                android:scaleType="centerInside"
+                android:padding="8dp"
                 android:background="@color/bg3"/>
 
-            <!-- Emoji fallback -->
             <TextView
                 android:id="@+id/tv_logo_ph"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_height="100dp"
                 android:gravity="center"
-                android:text="ðŸ“º"
-                android:textSize="32sp"
+                android:text="TV"
+                android:textSize="24sp"
+                android:textColor="@color/muted"
                 android:visibility="gone"/>
 
-            <!-- Badge calidad -->
+            <!-- Badge VIVO -->
             <TextView
-                android:id="@+id/tv_quality"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="top|start"
                 android:layout_margin="4dp"
+                android:text="● VIVO"
+                android:textSize="8sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
                 android:paddingStart="4dp"
                 android:paddingEnd="4dp"
                 android:paddingTop="1dp"
                 android:paddingBottom="1dp"
-                android:textSize="9sp"
-                android:textStyle="bold"
-                android:textColor="@color/bg"
-                android:background="@color/accent"
-                android:visibility="gone"/>
+                android:background="#CCEF4444"/>
 
             <!-- Favorito -->
             <ImageView
                 android:id="@+id/iv_fav"
-                android:layout_width="28dp"
-                android:layout_height="28dp"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
                 android:layout_gravity="top|end"
                 android:layout_margin="4dp"
-                android:padding="4dp"
                 android:src="@android:drawable/btn_star_big_off"
                 android:background="?attr/selectableItemBackgroundBorderless"/>
 
@@ -73,6 +72,7 @@
             android:orientation="vertical"
             android:padding="6dp">
 
+            <!-- Nombre canal -->
             <TextView
                 android:id="@+id/tv_name"
                 android:layout_width="match_parent"
@@ -83,12 +83,46 @@
                 android:maxLines="1"
                 android:ellipsize="end"/>
 
+            <!-- Programa actual -->
             <TextView
-                android:id="@+id/tv_epg"
+                android:id="@+id/tv_epg_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="10sp"
+                android:textColor="@color/accent"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:layout_marginTop="2dp"
+                android:visibility="gone"/>
+
+            <!-- Barra progreso EPG -->
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="3dp"
+                android:layout_marginTop="3dp"
+                android:visibility="gone"
+                android:id="@+id/layout_epg_progress">
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="#22FFFFFF"/>
+
+                <View
+                    android:id="@+id/epg_progress_bar"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:background="@color/accent"/>
+
+            </FrameLayout>
+
+            <!-- Próximo programa -->
+            <TextView
+                android:id="@+id/tv_epg_next"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textSize="9sp"
-                android:textColor="@color/muted2"
+                android:textColor="@color/muted"
                 android:maxLines="1"
                 android:ellipsize="end"
                 android:layout_marginTop="2dp"
