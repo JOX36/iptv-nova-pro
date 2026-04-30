@@ -30,7 +30,7 @@ public class MediaAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
     private static class Row {
         boolean isHeader;
-        String  header;
+        String header;
         MediaItem item;
         Row(String h)    { isHeader = true;  header = h; }
         Row(MediaItem m) { isHeader = false; item = m;   }
@@ -44,7 +44,9 @@ public class MediaAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     private boolean searchMode = false;
 
     public MediaAdapter(String type, AppPrefs prefs, Listener l) {
-        this.type = type; this.prefs = prefs; this.listener = l;
+        this.type = type;
+        this.prefs = prefs;
+        this.listener = l;
     }
 
     public void setItems(List<MediaItem> list) {
@@ -59,21 +61,20 @@ public class MediaAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         searchMode = true;
         rows.clear();
         if (!live.isEmpty()) {
-            rows.add(new Row("\uD83D\uDCFA  EN VIVO  —  " + live.size() + " resultado" + (live.size()>1?"s":"")));
+            rows.add(new Row("\uD83D\uDCFA  EN VIVO  —  " + live.size() + " resultado" + (live.size() > 1 ? "s" : "")));
             for (MediaItem m : live) rows.add(new Row(m));
         }
         if (!vod.isEmpty()) {
-            rows.add(new Row("\uD83C\uDFAC  PELÍCULAS  —  " + vod.size() + " resultado" + (vod.size()>1?"s":"")));
+            rows.add(new Row("\uD83C\uDFAC  PELÍCULAS  —  " + vod.size() + " resultado" + (vod.size() > 1 ? "s" : "")));
             for (MediaItem m : vod) rows.add(new Row(m));
         }
         if (!series.isEmpty()) {
-            rows.add(new Row("\uD83C\uDFAD  SERIES  —  " + series.size() + " resultado" + (series.size()>1?"s":"")));
+            rows.add(new Row("\uD83C\uDFAD  SERIES  —  " + series.size() + " resultado" + (series.size() > 1 ? "s" : "")));
             for (MediaItem m : series) rows.add(new Row(m));
         }
         notifyDataSetChanged();
     }
 
-    /** Configurar SpanSizeLookup para que headers ocupen todo el ancho */
     public void attachToGrid(GridLayoutManager mgr, int spanCount) {
         mgr.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
             @Override public int getSpanSize(int pos) {
@@ -107,6 +108,7 @@ public class MediaAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             ((HeaderVH) holder).tvHeader.setText(row.header);
             return;
         }
+
         MediaItem item = row.item;
         ItemVH h = (ItemVH) holder;
 
@@ -116,14 +118,13 @@ public class MediaAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             (MediaItem.LIVE.equals(type) && !searchMode);
         String imgUrl = isLive ? item.logo : item.thumb();
 
-        // EPG se carga bajo demanda — no aquí para no saturar la red
-
         if (h.ivImage != null) {
             if (imgUrl != null && !imgUrl.isEmpty()) {
                 h.ivImage.setVisibility(View.VISIBLE);
                 if (h.tvPh != null) h.tvPh.setVisibility(View.GONE);
                 Glide.with(h.ivImage.getContext().getApplicationContext())
-                    .load(imgUrl).centerCrop()
+                    .load(imgUrl)
+                    .centerCrop()
                     .placeholder(android.R.color.darker_gray)
                     .into(h.ivImage);
             } else {
@@ -136,7 +137,9 @@ public class MediaAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             if (item.rating != null && !item.rating.isEmpty() && !item.rating.equals("0")) {
                 h.tvRating.setText("\u2605 " + item.rating);
                 h.tvRating.setVisibility(View.VISIBLE);
-            } else h.tvRating.setVisibility(View.GONE);
+            } else {
+                h.tvRating.setVisibility(View.GONE);
+            }
         }
 
         if (h.progressBar != null && !isLive) {
@@ -151,16 +154,18 @@ public class MediaAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                         h.progressBar.setLayoutParams(lp);
                     }
                 });
-            } else h.progressBar.setVisibility(View.GONE);
+            } else {
+                h.progressBar.setVisibility(View.GONE);
+            }
         }
 
-        // Badge temporadas para Series — muestra "▼ N temp"
         if (h.tvSeasonsBadge != null) {
-            if (MediaItem.SERIES.equals(item.type) && item.seasons > 1) {
-                h.tvSeasonsBadge.setText("\u25BC " + item.seasons + " temp");
-                h.tvSeasonsBadge.setVisibility(View.VISIBLE);
-            } else if (MediaItem.SERIES.equals(item.type)) {
-                h.tvSeasonsBadge.setText("SERIE");
+            if (MediaItem.SERIES.equals(item.type)) {
+                if (item.seasons > 1) {
+                    h.tvSeasonsBadge.setText("\u25BC " + item.seasons + " temp");
+                } else {
+                    h.tvSeasonsBadge.setText("SERIE");
+                }
                 h.tvSeasonsBadge.setVisibility(View.VISIBLE);
             } else {
                 h.tvSeasonsBadge.setVisibility(View.GONE);
@@ -172,7 +177,9 @@ public class MediaAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             if (q != null && !q.isEmpty() && !MediaItem.SERIES.equals(item.type)) {
                 h.tvQuality.setText(q);
                 h.tvQuality.setVisibility(View.VISIBLE);
-            } else h.tvQuality.setVisibility(View.GONE);
+            } else {
+                h.tvQuality.setVisibility(View.GONE);
+            }
         }
 
         if (h.ivFav != null) {
@@ -210,17 +217,16 @@ public class MediaAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
         ItemVH(View v) {
             super(v);
-            ivImage       = v.findViewById(R.id.iv_cover) != null ?
-                            v.findViewById(R.id.iv_cover) : v.findViewById(R.id.iv_logo);
-            ivFav         = v.findViewById(R.id.iv_fav);
-            tvName        = v.findViewById(R.id.tv_name);
-            tvQuality     = v.findViewById(R.id.tv_quality);
-            tvRating      = v.findViewById(R.id.tv_rating);
-            tvSeasonsBadge= v.findViewById(R.id.tv_seasons_badge);
-            tvPh          = v.findViewById(R.id.tv_cover_ph) != null ?
-                            v.findViewById(R.id.tv_cover_ph) : v.findViewById(R.id.tv_logo_ph);
-            progressBar   = v.findViewById(R.id.progress_bar);
+            ivImage        = v.findViewById(R.id.iv_cover) != null ?
+                             v.findViewById(R.id.iv_cover) : v.findViewById(R.id.iv_logo);
+            ivFav          = v.findViewById(R.id.iv_fav);
+            tvName         = v.findViewById(R.id.tv_name);
+            tvQuality      = v.findViewById(R.id.tv_quality);
+            tvRating       = v.findViewById(R.id.tv_rating);
+            tvSeasonsBadge = v.findViewById(R.id.tv_seasons_badge);
+            tvPh           = v.findViewById(R.id.tv_cover_ph) != null ?
+                             v.findViewById(R.id.tv_cover_ph) : v.findViewById(R.id.tv_logo_ph);
+            progressBar    = v.findViewById(R.id.progress_bar);
         }
     }
-
 }
