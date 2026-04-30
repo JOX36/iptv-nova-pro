@@ -302,7 +302,11 @@ public class PlayerActivity extends AppCompatActivity {
 
     private void setupButtonsForType() {
         boolean isLive = item.type.equals(MediaItem.LIVE);
-        playerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FILL);
+        if (item.type.equals(MediaItem.VOD)) {
+            playerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FILL);
+        } else {
+            playerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FILL);
+        }
         layoutLiveBtns.setVisibility(isLive ? View.VISIBLE : View.GONE);
         layoutVodBtns.setVisibility(isLive ? View.GONE : View.VISIBLE);
         layoutSeek.setVisibility(isLive ? View.GONE : View.VISIBLE);
@@ -422,13 +426,21 @@ public class PlayerActivity extends AppCompatActivity {
         playerView.setUseController(false);
 
         String url = item.url;
-        androidx.media3.common.MediaItem mi =
-            url.contains(".m3u8") ?
-            new androidx.media3.common.MediaItem.Builder()
+        androidx.media3.common.MediaItem mi;
+        if (url.contains(".m3u8") || url.contains("type=m3u")) {
+            mi = new androidx.media3.common.MediaItem.Builder()
                 .setUri(url)
                 .setMimeType(androidx.media3.common.MimeTypes.APPLICATION_M3U8)
-                .build() :
-            androidx.media3.common.MediaItem.fromUri(url);
+                .build();
+        } else if (url.contains(".mkv") || url.contains(".avi") || url.contains(".ts")) {
+            // Forzar tipo video para contenedores que ExoPlayer puede no detectar
+            mi = new androidx.media3.common.MediaItem.Builder()
+                .setUri(url)
+                .setMimeType("video/x-matroska")
+                .build();
+        } else {
+            mi = androidx.media3.common.MediaItem.fromUri(url);
+        }
 
         player.setMediaItem(mi);
         player.prepare();
