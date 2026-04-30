@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.jox3.tv.model.Account;
 import com.jox3.tv.model.Category;
+import com.jox3.tv.model.EpgProgram;
 import com.jox3.tv.model.MediaItem;
 
 import java.io.IOException;
@@ -192,6 +193,75 @@ public class XtreamApi {
 
     private String str(JsonObject o, String key) {
         return o.has(key) && !o.get(key).isJsonNull() ? o.get(key).getAsString() : "";
+    }
+
+
+    // ── EPG ──
+    public List<EpgProgram> getShortEpg(String streamId) throws IOException {
+        String json = get(api("get_short_epg") + "&stream_id=" + streamId + "&limit=2");
+        return parseEpg(json);
+    }
+
+    public List<EpgProgram> getFullEpg(String streamId) throws IOException {
+        String json = get(api("get_simple_data_table") + "&stream_id=" + streamId);
+        return parseEpg(json);
+    }
+
+    private List<EpgProgram> parseEpg(String json) {
+        List<EpgProgram> list = new ArrayList<>();
+        try {
+            com.google.gson.JsonObject root = JsonParser.parseString(json).getAsJsonObject();
+            com.google.gson.JsonArray listings = root.has("epg_listings") ?
+                root.getAsJsonArray("epg_listings") : new com.google.gson.JsonArray();
+
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat(
+                "yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault());
+            sdf.setTimeZone(java.util.TimeZone.getDefault());
+
+            for (int i = 0; i < listings.size(); i++) {
+                com.google.gson.JsonObject o = listings.get(i).getAsJsonObject();
+                String title = "";
+                String desc  = "";
+
+                // El título puede venir en base64
+                if (o.has("title")) {
+                    try {
+                        title = new String(android.util.Base64.decode(
+                            o.get("title").getAsString(), android.util.Base64.DEFAULT));
+                    } catch (Exception e) {
+                        title = o.get("title").getAsString();
+                    }
+                }
+                if (o.has("description")) {
+                    try {
+                        desc = new String(android.util.Base64.decode(
+                            o.get("description").getAsString(), android.util.Base64.DEFAULT));
+                    } catch (Exception e) {
+                        desc = o.get("description").getAsString();
+                    }
+                }
+
+                String startStr = o.has("start") ? o.get("start").getAsString() : "";
+                String endStr   = o.has("end")   ? o.get("end").getAsString()   :
+                                  o.has("stop")  ? o.get("stop").getAsString()  : "";
+
+                long startMs = 0, endMs = 0;
+                try { startMs = sdf.parse(startStr).getTime(); } catch (Exception ignored) {}
+                try { endMs   = sdf.parse(endStr).getTime();   } catch (Exception ignored) {}
+
+                // Algunos servidores dan timestamp Unix directamente
+                if (startMs == 0 && o.has("start_timestamp")) {
+                    try { startMs = o.get("start_timestamp").getAsLong() * 1000; } catch (Exception ignored) {}
+                }
+                if (endMs == 0 && o.has("stop_timestamp")) {
+                    try { endMs = o.get("stop_timestamp").getAsLong() * 1000; } catch (Exception ignored) {}
+                }
+
+                if (!title.isEmpty())
+                    list.add(new com.jox3.tv.model.EpgProgram(title.trim(), desc.trim(), startMs, endMs));
+            }
+        } catch (Exception ignored) {}
+        return list;
     }
 
     // ── SSL bypass ──
