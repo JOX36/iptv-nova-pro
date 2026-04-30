@@ -125,10 +125,7 @@ public class MediaAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             (MediaItem.LIVE.equals(type) && !searchMode);
         String imgUrl = isLive ? item.logo : item.thumb();
 
-        // Cargar EPG para canales Live
-        if (isLive && item.id != null && !item.id.isEmpty()) {
-            loadEpgForChannel(item, h);
-        }
+        // EPG se carga bajo demanda — no aquí para no saturar la red
 
         if (h.ivImage != null) {
             if (imgUrl != null && !imgUrl.isEmpty()) {
