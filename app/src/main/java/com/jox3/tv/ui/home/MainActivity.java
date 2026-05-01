@@ -437,11 +437,6 @@ public class MainActivity extends AppCompatActivity {
             if (!cached.isEmpty()) loadItems(cached.get(0));
             return;
         }
-        // M3U — datos ya cargados en login
-        if (state.isM3u()) {
-            showProgress(false);
-            return;
-        }
         showProgress(true);
         exec.execute(() -> {
             try {
@@ -465,8 +460,6 @@ public class MainActivity extends AppCompatActivity {
         selectedCat = cat;
         catAdapter.setSelected(state.cats(currentType).indexOf(cat));
         if (cat.loaded) { mediaAdapter.setItems(cat.items); return; }
-        // M3U — items ya cargados
-        if (state.isM3u()) { showProgress(false); return; }
         showProgress(true);
         exec.execute(() -> {
             try {
