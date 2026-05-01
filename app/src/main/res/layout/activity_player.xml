@@ -189,17 +189,6 @@
                 android:textColor="#EF4444"
                 android:padding="0dp"/>
 
-            <Button
-                android:id="@+id/btn_epg"
-                android:layout_width="48dp"
-                android:layout_height="40dp"
-                android:text="EPG"
-                android:textSize="10sp"
-                android:backgroundTint="#1a2535"
-                android:textColor="#00D4FF"
-                android:layout_marginStart="8dp"
-                android:padding="0dp"/>
-
         </LinearLayout>
 
         <!-- Botones VOD/Series -->

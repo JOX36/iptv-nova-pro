@@ -38,7 +38,6 @@
 
     </LinearLayout>
 
-    <!-- Scroll content -->
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent">
@@ -108,14 +107,63 @@
             <View android:layout_width="match_parent" android:layout_height="1dp"
                 android:background="@color/border" android:layout_marginHorizontal="12dp"/>
 
-            <!-- Selector temporada -->
-            <Spinner
-                android:id="@+id/spinner_seasons"
+            <!-- Selector temporada — botón estilizado con ▼ -->
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_margin="12dp"
-                android:background="@color/bg2"
-                android:popupBackground="@color/bg2"/>
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="12dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="TEMPORADA"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/muted"
+                    android:letterSpacing="0.1"
+                    android:layout_marginEnd="10dp"/>
+
+                <!-- Botón selector con ▼ -->
+                <LinearLayout
+                    android:id="@+id/btn_season_selector"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:background="@color/bg3"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="10dp">
+
+                    <TextView
+                        android:id="@+id/tv_season_selected"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Temporada 1"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="▼"
+                        android:textSize="12sp"
+                        android:textColor="@color/accent"/>
+
+                </LinearLayout>
+
+                <!-- Spinner oculto — solo para funcionalidad -->
+                <Spinner
+                    android:id="@+id/spinner_seasons"
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:visibility="gone"/>
+
+            </LinearLayout>
 
             <!-- Lista episodios -->
             <androidx.recyclerview.widget.RecyclerView
