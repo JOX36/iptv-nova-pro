@@ -160,12 +160,8 @@ public class MediaAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         }
 
         if (h.tvSeasonsBadge != null) {
-            if (MediaItem.SERIES.equals(item.type)) {
-                if (item.seasons > 1) {
-                    h.tvSeasonsBadge.setText("\u25BC " + item.seasons + " temp");
-                } else {
-                    h.tvSeasonsBadge.setText("SERIE");
-                }
+            if (MediaItem.SERIES.equals(item.type) && item.seasons > 1) {
+                h.tvSeasonsBadge.setText("\u25BC " + item.seasons + " temp");
                 h.tvSeasonsBadge.setVisibility(View.VISIBLE);
             } else {
                 h.tvSeasonsBadge.setVisibility(View.GONE);
