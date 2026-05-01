@@ -39,6 +39,8 @@ public class SeriesActivity extends AppCompatActivity {
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     private Spinner spinnerSeasons;
+    private TextView tvSeasonSelected;
+    private android.view.View btnSeasonSelector;
     private RecyclerView rvEpisodes;
     private TextView tvTitle, tvPlot, tvRating, tvYear;
     private ImageView ivCover;
@@ -59,7 +61,9 @@ public class SeriesActivity extends AppCompatActivity {
         tvRating       = findViewById(R.id.tv_rating);
         tvYear         = findViewById(R.id.tv_year);
         ivCover        = findViewById(R.id.iv_cover);
-        spinnerSeasons = findViewById(R.id.spinner_seasons);
+        spinnerSeasons    = findViewById(R.id.spinner_seasons);
+        tvSeasonSelected  = findViewById(R.id.tv_season_selected);
+        btnSeasonSelector = findViewById(R.id.btn_season_selector);
         rvEpisodes     = findViewById(R.id.rv_episodes);
 
         tvTitle.setText(item.name);
@@ -123,20 +127,31 @@ public class SeriesActivity extends AppCompatActivity {
         for (String s : seasons) total += toArray(seasonsMap.get(s)).size();
 
 
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
-            android.R.layout.simple_spinner_item,
-            seasons.stream().map(s -> "Temporada " + s).collect(Collectors.toList()));
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerSeasons.setAdapter(adapter);
-
         final JsonObject finalMap = seasonsMap;
         final List<String> finalSeasons = seasons;
-        spinnerSeasons.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override public void onItemSelected(AdapterView<?> p, View v, int pos, long id) {
-                loadEpisodes(finalMap, finalSeasons.get(pos));
-            }
-            @Override public void onNothingSelected(AdapterView<?> p) {}
-        });
+
+        // Mostrar temporada 1 por defecto
+        if (tvSeasonSelected != null)
+            tvSeasonSelected.setText("Temporada " + seasons.get(0));
+
+        // Botón ▼ abre diálogo con lista de temporadas
+        if (btnSeasonSelector != null) {
+            btnSeasonSelector.setOnClickListener(v -> {
+                String[] options = finalSeasons.stream()
+                    .map(s -> "Temporada " + s)
+                    .toArray(String[]::new);
+
+                new androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setTitle("Seleccionar temporada")
+                    .setItems(options, (d, which) -> {
+                        String sel = finalSeasons.get(which);
+                        if (tvSeasonSelected != null)
+                            tvSeasonSelected.setText("Temporada " + sel);
+                        loadEpisodes(finalMap, sel);
+                    })
+                    .show();
+            });
+        }
 
         loadEpisodes(finalMap, seasons.get(0));
     }
