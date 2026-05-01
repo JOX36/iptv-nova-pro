@@ -47,6 +47,9 @@ public class MainActivity extends AppCompatActivity {
     private Category selectedCat;
     private boolean isSearchMode = false;
     private boolean isHomeMode = true;
+    private boolean indexingStarted = false;
+    private int indexTotal = 0;
+    private int indexDone  = 0;
 
     private DrawerLayout drawerLayout;
     private CategoryAdapter catAdapter;
@@ -82,6 +85,7 @@ public class MainActivity extends AppCompatActivity {
         if (state.account == null) { goLogin(); return; }
         initViews();
         showHome();
+        startIndexing();
     }
 
     @Override
@@ -287,6 +291,114 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // ── BÚSQUEDA — solo en lo cargado ──
+    private void startIndexing() {
+        if (indexingStarted) return;
+        indexingStarted = true;
+
+        exec.execute(() -> {
+            try {
+                // 1. Cargar nombres de categorías de los 3 tipos
+                if (state.liveCats.isEmpty())
+                    state.liveCats.addAll(state.api.getLiveCats());
+                if (state.vodCats.isEmpty())
+                    state.vodCats.addAll(state.api.getVodCats());
+                if (state.seriesCats.isEmpty())
+                    state.seriesCats.addAll(state.api.getSeriesCats());
+
+                indexTotal = state.liveCats.size() + state.vodCats.size() + state.seriesCats.size();
+                indexDone  = 0;
+
+                // Mostrar barra de progreso
+                mainHandler.post(() -> {
+                    View bar = findViewById(R.id.layout_index_progress);
+                    if (bar != null) bar.setVisibility(View.VISIBLE);
+                    android.widget.ProgressBar pb = findViewById(R.id.progress_index);
+                    if (pb != null) pb.setMax(Math.max(indexTotal, 1));
+                });
+
+                // 2. Cargar items en paralelo con 5 hilos
+                java.util.concurrent.ExecutorService pool =
+                    java.util.concurrent.Executors.newFixedThreadPool(5);
+
+                for (Category cat : state.liveCats) {
+                    if (cat.loaded) { indexDone++; continue; }
+                    final Category fc = cat;
+                    pool.execute(() -> {
+                        try {
+                            fc.items = state.api.getLiveStreams(fc.id);
+                            fc.loaded = true;
+                        } catch (Exception ignored) {}
+                        indexDone++;
+                        updateIndexProgress();
+                    });
+                }
+                for (Category cat : state.vodCats) {
+                    if (cat.loaded) { indexDone++; continue; }
+                    final Category fc = cat;
+                    pool.execute(() -> {
+                        try {
+                            fc.items = state.api.getVodStreams(fc.id);
+                            fc.loaded = true;
+                        } catch (Exception ignored) {}
+                        indexDone++;
+                        updateIndexProgress();
+                    });
+                }
+                for (Category cat : state.seriesCats) {
+                    if (cat.loaded) { indexDone++; continue; }
+                    final Category fc = cat;
+                    pool.execute(() -> {
+                        try {
+                            fc.items = state.api.getSeries(fc.id);
+                            fc.loaded = true;
+                        } catch (Exception ignored) {}
+                        indexDone++;
+                        updateIndexProgress();
+                    });
+                }
+
+                pool.shutdown();
+                pool.awaitTermination(5, java.util.concurrent.TimeUnit.MINUTES);
+
+                // Indexación completa
+                mainHandler.post(() -> {
+                    View bar = findViewById(R.id.layout_index_progress);
+                    if (bar != null) {
+                        TextView status = findViewById(R.id.tv_index_status);
+                        TextView pct    = findViewById(R.id.tv_index_pct);
+                        if (status != null) status.setText("Listo ✓");
+                        if (pct    != null) pct.setText("100%");
+                        mainHandler.postDelayed(() -> bar.setVisibility(View.GONE), 2000);
+                    }
+                    if (isHomeMode) refreshHome();
+                });
+
+            } catch (Exception e) {
+                mainHandler.post(() -> {
+                    View bar = findViewById(R.id.layout_index_progress);
+                    if (bar != null) bar.setVisibility(View.GONE);
+                });
+            }
+        });
+    }
+
+    private void updateIndexProgress() {
+        mainHandler.post(() -> {
+            if (indexTotal <= 0) return;
+            android.widget.ProgressBar pb = findViewById(R.id.progress_index);
+            TextView status = findViewById(R.id.tv_index_status);
+            TextView pct    = findViewById(R.id.tv_index_pct);
+            if (pb     != null) pb.setProgress(indexDone);
+            if (pct    != null) pct.setText((int)(indexDone * 100f / indexTotal) + "%");
+            if (status != null) {
+                int lv = (int) state.liveCats.stream().filter(x->x.loaded).count();
+                int vd = (int) state.vodCats.stream().filter(x->x.loaded).count();
+                int sr = (int) state.seriesCats.stream().filter(x->x.loaded).count();
+                status.setText("TV:" + lv + " VOD:" + vd + " Series:" + sr);
+            }
+        });
+    }
+
     private void doSearch(String q) {
         if (q.trim().isEmpty()) return;
         String ql = q.toLowerCase();
