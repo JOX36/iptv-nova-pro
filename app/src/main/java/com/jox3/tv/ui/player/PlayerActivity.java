@@ -607,7 +607,7 @@ public class PlayerActivity extends AppCompatActivity {
             prefs.saveProgress(item.id, player.getCurrentPosition(), player.getDuration());
     }
 
-    private void exitPlayer() { {
+    private void exitPlayer() {
         if (playerReleased) return;
         playerReleased = true;
         handler.removeCallbacks(seekUpdateRunnable);
