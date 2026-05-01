@@ -95,6 +95,10 @@ public class MainActivity extends AppCompatActivity {
         isHomeMode = true;
         swipeRefresh.setVisibility(View.GONE);
         rvContent.setVisibility(View.GONE);
+        // Ocultar menú y deshabilitar sidebar en Home
+        View btnMenu = findViewById(R.id.btn_menu);
+        if (btnMenu != null) btnMenu.setVisibility(View.INVISIBLE);
+        drawerLayout.setDrawerLockMode(androidx.drawerlayout.widget.DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
         if (homeView == null) {
             homeView = LayoutInflater.from(this)
                 .inflate(R.layout.fragment_home, contentContainer, false);
@@ -131,6 +135,10 @@ public class MainActivity extends AppCompatActivity {
         if (homeView != null) homeView.setVisibility(View.GONE);
         swipeRefresh.setVisibility(View.VISIBLE);
         rvContent.setVisibility(View.VISIBLE);
+        // Mostrar menú y habilitar sidebar fuera del Home
+        View btnMenu = findViewById(R.id.btn_menu);
+        if (btnMenu != null) btnMenu.setVisibility(View.VISIBLE);
+        drawerLayout.setDrawerLockMode(androidx.drawerlayout.widget.DrawerLayout.LOCK_MODE_UNLOCKED);
     }
 
     private void refreshHome() {
