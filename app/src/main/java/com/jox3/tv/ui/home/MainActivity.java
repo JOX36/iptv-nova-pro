@@ -445,6 +445,11 @@ public class MainActivity extends AppCompatActivity {
         tvAccount.setText(state.account.displayHost());
         tvAccount.setOnClickListener(v -> goLogin());
 
+        View btnSettings = findViewById(R.id.btn_settings);
+        if (btnSettings != null)
+            btnSettings.setOnClickListener(v ->
+                startActivity(new Intent(this, com.jox3.tv.ui.setup.SettingsActivity.class)));
+
         View btnMenu = findViewById(R.id.btn_menu);
         if (btnMenu != null) btnMenu.setOnClickListener(v -> {
             View sidebar = findViewById(R.id.sidebar);
