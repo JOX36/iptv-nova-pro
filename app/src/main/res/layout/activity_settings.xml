@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/bg">
+
+    <!-- Top bar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@color/bg2"
+        android:padding="10dp">
+
+        <TextView
+            android:id="@+id/btn_back"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:gravity="center"
+            android:text="X"
+            android:textSize="16sp"
+            android:textColor="@color/text"
+            android:background="?attr/selectableItemBackgroundBorderless"/>
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Configuración"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/text"
+            android:paddingStart="10dp"/>
+
+    </LinearLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="24dp">
+
+            <!-- CUENTA -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="CUENTA"
+                android:textSize="10sp"
+                android:textColor="@color/accent"
+                android:letterSpacing="0.15"
+                android:paddingStart="16dp"
+                android:paddingTop="20dp"
+                android:paddingBottom="6dp"/>
+
+            <!-- Info cuenta -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@color/bg2"
+                android:padding="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp">
+                    <TextView android:layout_width="100dp" android:layout_height="wrap_content"
+                        android:text="Servidor" android:textColor="@color/muted" android:textSize="12sp"/>
+                    <TextView android:id="@+id/tv_host" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:textColor="@color/text" android:textSize="12sp"/>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp">
+                    <TextView android:layout_width="100dp" android:layout_height="wrap_content"
+                        android:text="Usuario" android:textColor="@color/muted" android:textSize="12sp"/>
+                    <TextView android:id="@+id/tv_user" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:textColor="@color/text" android:textSize="12sp"/>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp">
+                    <TextView android:layout_width="100dp" android:layout_height="wrap_content"
+                        android:text="Vencimiento" android:textColor="@color/muted" android:textSize="12sp"/>
+                    <TextView android:id="@+id/tv_expiry" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:textColor="@color/yellow" android:textSize="12sp"/>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp">
+                    <TextView android:layout_width="100dp" android:layout_height="wrap_content"
+                        android:text="Días restantes" android:textColor="@color/muted" android:textSize="12sp"/>
+                    <TextView android:id="@+id/tv_days" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:textColor="@color/accent2" android:textSize="12sp"/>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+                    <TextView android:layout_width="100dp" android:layout_height="wrap_content"
+                        android:text="Conexiones" android:textColor="@color/muted" android:textSize="12sp"/>
+                    <TextView android:id="@+id/tv_connections" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:textColor="@color/text" android:textSize="12sp"/>
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- Cambiar cuenta -->
+            <LinearLayout
+                android:id="@+id/btn_change_account"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@color/bg2"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:layout_marginTop="1dp">
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Cambiar cuenta"
+                    android:textColor="@color/text" android:textSize="14sp"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="›" android:textSize="20sp" android:textColor="@color/muted"/>
+            </LinearLayout>
+
+            <!-- APARIENCIA -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="APARIENCIA"
+                android:textSize="10sp"
+                android:textColor="@color/accent"
+                android:letterSpacing="0.15"
+                android:paddingStart="16dp"
+                android:paddingTop="20dp"
+                android:paddingBottom="6dp"/>
+
+            <!-- Skins -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@color/bg2"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Tema de color"
+                    android:textColor="@color/text"
+                    android:textSize="14sp"
+                    android:layout_marginBottom="12dp"/>
+
+                <!-- Skin cards -->
+                <LinearLayout
+                    android:id="@+id/skin_container"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"/>
+
+            </LinearLayout>
+
+            <!-- APP -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="APP"
+                android:textSize="10sp"
+                android:textColor="@color/accent"
+                android:letterSpacing="0.15"
+                android:paddingStart="16dp"
+                android:paddingTop="20dp"
+                android:paddingBottom="6dp"/>
+
+            <!-- Limpiar indexación -->
+            <LinearLayout
+                android:id="@+id/btn_clear_index"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@color/bg2"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp">
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Limpiar indexación"
+                    android:textColor="@color/text" android:textSize="14sp"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="›" android:textSize="20sp" android:textColor="@color/muted"/>
+            </LinearLayout>
+
+            <!-- Versión -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@color/bg2"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:layout_marginTop="1dp">
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Versión"
+                    android:textColor="@color/text" android:textSize="14sp"/>
+                <TextView android:id="@+id/tv_version"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:textColor="@color/muted" android:textSize="12sp"/>
+            </LinearLayout>
+
+            <!-- Créditos -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:paddingTop="32dp"
+                android:paddingBottom="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="IPTV for JOX3®"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/accent"
+                    android:shadowColor="@color/accent"
+                    android:shadowDx="0" android:shadowDy="0" android:shadowRadius="10"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Desarrollado con ❤️ para JOX3"
+                    android:textSize="11sp"
+                    android:textColor="@color/muted"
+                    android:layout_marginTop="4dp"/>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </androidx.core.widget.NestedScrollView>
+
+</LinearLayout>
