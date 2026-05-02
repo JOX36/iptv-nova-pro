@@ -1,8 +1,13 @@
 package com.jox3.tv.util;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.TextView;
 
 public class ThemeManager {
 
@@ -43,23 +48,19 @@ public class ThemeManager {
             "#0a0e14","#0d1219","#121820","#1a2535",
             "#00D4FF","#00FF88","#FFC107","#EF4444",
             "#E0F4FF","#4A7A8A","#7AB8CC"),
-
         new Skin(SKIN_MATRIX, "Matrix", "💚",
             "#000000","#001a00","#002200","#003300",
             "#00FF41","#39FF14","#CCFF00","#FF0040",
             "#CCFFCC","#1a5c1a","#33aa33"),
-
         new Skin(SKIN_FIRE, "Fuego", "🔥",
             "#0d0500","#150800","#1a0a00","#2a1200",
             "#FF6600","#FF3300","#FFD700","#FF1100",
             "#FFE8CC","#7A3A00","#CC7A00"),
-
         new Skin(SKIN_CYBER, "Cyber", "⚡",
             "#000d0a","#001410","#001a14","#002a1e",
             "#00FFD1","#7FFF00","#F0FF00","#FF3366",
             "#E0FFF8","#1a6655","#33ccaa"),
-
-        new Skin(SKIN_MINIMAL, "Minimal", "◻️",
+        new Skin(SKIN_MINIMAL, "Minimal", "◻",
             "#0a0a0a","#111111","#1a1a1a","#2a2a2a",
             "#FFFFFF","#CCCCCC","#FFD700","#FF4444",
             "#FFFFFF","#555555","#999999"),
@@ -89,5 +90,13 @@ public class ThemeManager {
     public static String getCurrentId(Context ctx) {
         return ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getString(KEY, SKIN_OCEAN);
+    }
+
+    /**
+     * Aplica el skin a toda la Activity — reinicia la Activity para reflejar cambios
+     */
+    public static void applyAndRestart(Activity activity, String skinId) {
+        setSkin(activity, skinId);
+        activity.recreate(); // Reinicia la Activity aplicando el nuevo tema
     }
 }
