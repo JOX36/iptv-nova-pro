@@ -180,12 +180,7 @@ public class SettingsActivity extends AppCompatActivity {
             card.addView(tvName);
 
             card.setOnClickListener(v -> {
-                ThemeManager.setSkin(this, skin.id);
-                Toast.makeText(this,
-                    "Tema " + skin.name + " aplicado — reinicia la app",
-                    Toast.LENGTH_SHORT).show();
-                // Refrescar preview
-                setupSkins();
+                ThemeManager.applyAndRestart(this, skin.id);
             });
 
             container.addView(card);
