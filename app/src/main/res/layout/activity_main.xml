@@ -43,18 +43,34 @@
                     android:textColor="@color/accent"
                     android:background="?attr/selectableItemBackgroundBorderless"/>
 
-                <TextView
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="JOX3 TV"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/accent"
-                    android:shadowColor="@color/accent"
-                    android:shadowDx="0"
-                    android:shadowDy="0"
-                    android:shadowRadius="8"/>
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="⭐ JOX3 TV PRO ⭐"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/accent"
+                        android:shadowColor="@color/accent"
+                        android:shadowDx="0"
+                        android:shadowDy="0"
+                        android:shadowRadius="10"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:id="@+id/tv_version_header"
+                        android:text="v1.5"
+                        android:textSize="9sp"
+                        android:textColor="@color/muted2"
+                        android:letterSpacing="0.1"/>
+
+                </LinearLayout>
 
                 <TextView
                     android:id="@+id/tv_account"
@@ -70,14 +86,14 @@
 
                 <TextView
                     android:id="@+id/btn_settings"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
                     android:gravity="center"
                     android:text="⚙"
-                    android:textSize="18sp"
-                    android:textColor="@color/muted2"
-                    android:layout_marginStart="6dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"/>
+                    android:textSize="16sp"
+                    android:textColor="@color/accent"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/bg_chip"/>
 
             </LinearLayout>
 
@@ -199,14 +215,30 @@
         </FrameLayout>
 
         <!-- Bottom nav -->
-        <com.google.android.material.bottomnavigation.BottomNavigationView
-            android:id="@+id/bottom_nav"
+        <!-- Barra inferior con borde superior -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/bg2"
-            app:itemIconTint="@color/nav_selector"
-            app:itemTextColor="@color/nav_selector"
-            app:menu="@menu/bottom_nav"/>
+            android:orientation="vertical">
+
+            <!-- Borde superior cyan -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="2dp"
+                android:background="@color/accent"/>
+
+            <com.google.android.material.bottomnavigation.BottomNavigationView
+                android:id="@+id/bottom_nav"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@color/bg2"
+                app:itemIconTint="@color/nav_selector"
+                app:itemTextColor="@color/nav_selector"
+                app:itemRippleColor="@color/accent"
+                app:labelVisibilityMode="labeled"
+                app:menu="@menu/bottom_nav"/>
+
+        </LinearLayout>
 
     </LinearLayout>
 
