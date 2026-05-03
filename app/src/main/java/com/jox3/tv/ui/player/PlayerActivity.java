@@ -277,7 +277,17 @@ public class PlayerActivity extends AppCompatActivity {
 
         // Lock overlay
         lockOverlay = findViewById(R.id.lock_overlay);
-        btnUnlock  = findViewById(R.id.btn_unlock);
+        btnUnlock   = findViewById(R.id.btn_unlock);
+        if (lockOverlay != null) {
+            lockOverlay.setOnClickListener(v -> {
+                if (!screenLocked) return;
+                if (btnUnlock != null) {
+                    btnUnlock.setVisibility(View.VISIBLE);
+                    handler.removeCallbacks(hideUnlockRunnable);
+                    handler.postDelayed(hideUnlockRunnable, 2000);
+                }
+            });
+        }
 
 
         // Panel siguiente episodio
@@ -386,16 +396,24 @@ public class PlayerActivity extends AppCompatActivity {
         if (lockOverlay != null)
             lockOverlay.setVisibility(screenLocked ? View.VISIBLE : View.GONE);
         if (btnUnlock != null) {
-            btnUnlock.setVisibility(screenLocked ? View.VISIBLE : View.GONE);
+            btnUnlock.setOnClickListener(v -> toggleLock());
             if (screenLocked) {
-                btnUnlock.setOnClickListener(v -> toggleLock());
+                // Mostrar brevemente y luego ocultar
+                btnUnlock.setVisibility(View.VISIBLE);
+                handler.removeCallbacks(hideUnlockRunnable);
+                handler.postDelayed(hideUnlockRunnable, 2000);
+            } else {
+                btnUnlock.setVisibility(View.GONE);
             }
         }
         if (btnLock != null) {
             btnLock.setText(screenLocked ? "🔒" : "🔓");
         }
         if (screenLocked) {
-            hideBars();
+            // Ocultar TODAS las barras — solo queda visible el botón desbloquear
+            topBar.setVisibility(View.GONE);
+            bottomBar.setVisibility(View.GONE);
+            barsVisible = false;
             Toast.makeText(this, "Pantalla bloqueada", Toast.LENGTH_SHORT).show();
         } else {
             showBars();
@@ -686,6 +704,7 @@ public class PlayerActivity extends AppCompatActivity {
     private void toggleBars() { if (barsVisible) hideBars(); else showBars(); }
 
     private void showBars() {
+        if (screenLocked) return; // No mostrar barras si está bloqueado
         barsVisible = true;
         topBar.setVisibility(View.VISIBLE);
         bottomBar.setVisibility(View.VISIBLE);
@@ -767,6 +786,10 @@ public class PlayerActivity extends AppCompatActivity {
         if (player != null && item != null && !item.type.equals(MediaItem.LIVE))
             prefs.saveProgress(item.id, player.getCurrentPosition(), player.getDuration());
     }
+
+    private final Runnable hideUnlockRunnable = () -> {
+        if (btnUnlock != null) btnUnlock.setVisibility(View.GONE);
+    };
 
     private void exitPlayer() {
         if (playerReleased) return;
