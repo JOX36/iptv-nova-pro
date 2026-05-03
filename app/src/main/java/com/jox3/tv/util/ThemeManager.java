@@ -66,13 +66,15 @@ public class ThemeManager {
             "#FFFFFF","#555555","#999999"),
     };
 
+    public static Skin active = null;
     private static Skin current = null;
 
     public static Skin getSkin(Context ctx) {
-        if (current != null) return current;
+        if (current != null) { active = current; return current; }
         SharedPreferences sp = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         String id = sp.getString(KEY, SKIN_OCEAN);
         current = findSkin(id);
+        active = current;
         return current;
     }
 
