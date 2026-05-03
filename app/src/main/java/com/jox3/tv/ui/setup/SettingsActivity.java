@@ -38,7 +38,6 @@ public class SettingsActivity extends BaseActivity {
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
 
         setupAccountInfo();
-        setupSkins();
         setupActions();
     }
 
@@ -116,85 +115,6 @@ public class SettingsActivity extends BaseActivity {
                 });
             }
         });
-    }
-
-    private void setupSkins() {
-        LinearLayout container = findViewById(R.id.skin_container);
-        if (container == null) return;
-
-        String currentId = ThemeManager.getCurrentId(this);
-
-        for (ThemeManager.Skin skin : ThemeManager.SKINS) {
-            LinearLayout card = new LinearLayout(this);
-            card.setOrientation(LinearLayout.VERTICAL);
-
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
-            params.setMargins(4, 0, 4, 0);
-            card.setLayoutParams(params);
-
-            // Preview colores
-            LinearLayout preview = new LinearLayout(this);
-            preview.setLayoutParams(new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, 48));
-            preview.setOrientation(LinearLayout.HORIZONTAL);
-
-            // Fondo
-            View bgView = new View(this);
-            bgView.setLayoutParams(new LinearLayout.LayoutParams(0,
-                LinearLayout.LayoutParams.MATCH_PARENT, 1f));
-            bgView.setBackgroundColor(skin.bg);
-
-            // Accent
-            View accentView = new View(this);
-            accentView.setLayoutParams(new LinearLayout.LayoutParams(0,
-                LinearLayout.LayoutParams.MATCH_PARENT, 1f));
-            accentView.setBackgroundColor(skin.accent);
-
-            // Accent2
-            View accent2View = new View(this);
-            accent2View.setLayoutParams(new LinearLayout.LayoutParams(0,
-                LinearLayout.LayoutParams.MATCH_PARENT, 1f));
-            accent2View.setBackgroundColor(skin.accent2);
-
-            preview.addView(bgView);
-            preview.addView(accentView);
-            preview.addView(accent2View);
-
-            // Borde si está seleccionado
-            GradientDrawable border = new GradientDrawable();
-            border.setColor(Color.TRANSPARENT);
-            if (skin.id.equals(currentId)) {
-                border.setStroke(2, skin.accent);
-            }
-            preview.setBackground(border);
-
-            // Nombre
-            TextView tvName = new TextView(this);
-            tvName.setText(skin.emoji + " " + skin.name);
-            tvName.setTextSize(9);
-            tvName.setTextColor(skin.id.equals(currentId) ? skin.accent : 0xFF888888);
-            tvName.setGravity(android.view.Gravity.CENTER);
-            tvName.setPadding(0, 4, 0, 0);
-
-            card.addView(preview);
-            card.addView(tvName);
-
-            card.setOnClickListener(v -> {
-                ThemeManager.setSkin(this, skin.id);
-                // Reiniciar app completa para aplicar colores
-                android.content.Intent intent = getPackageManager()
-                    .getLaunchIntentForPackage(getPackageName());
-                if (intent != null) {
-                    intent.addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK |
-                                   android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
-                    startActivity(intent);
-                }
-                android.os.Process.killProcess(android.os.Process.myPid());
-            });
-
-            container.addView(card);
-        }
     }
 
     private void setupActions() {
