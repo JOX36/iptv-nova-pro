@@ -31,7 +31,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
-public class SeriesActivity extends AppCompatActivity {
+public class SeriesActivity extends com.jox3.tv.ui.BaseActivity {
 
     private MediaItem item;
     private JsonObject seriesData;
@@ -258,11 +258,28 @@ public class SeriesActivity extends AppCompatActivity {
             return;
         }
 
-        rvEpisodes.setAdapter(new EpisodeAdapter(list, ep -> {
-            PlayerActivity.requestClose = true;
-            MediaItem epItem = new MediaItem(
-                ep.id, item.name + " — " + ep.title,
+        // Convertir lista de episodios a MediaItems para continuidad
+        List<MediaItem> epMediaItems = new ArrayList<>();
+        for (EpisodeItem ep : list) {
+            MediaItem mi = new MediaItem(ep.id, item.name + " — " + ep.title,
                 item.cover, ep.url, "", MediaItem.VOD);
+            epMediaItems.add(mi);
+        }
+
+        final List<MediaItem> finalEpItems = epMediaItems;
+
+        rvEpisodes.setAdapter(new EpisodeAdapter(list, ep -> {
+            // Encontrar índice del episodio seleccionado
+            int idx = 0;
+            for (int i = 0; i < list.size(); i++) {
+                if (list.get(i).id.equals(ep.id)) { idx = i; break; }
+            }
+            // Cargar cola de episodios en AppState
+            AppState.get().episodeQueue = finalEpItems;
+            AppState.get().episodeIdx   = idx;
+
+            PlayerActivity.requestClose = true;
+            MediaItem epItem = finalEpItems.get(idx);
             Intent intent = new Intent(this, PlayerActivity.class);
             intent.putExtra("item", epItem);
             startActivity(intent);
