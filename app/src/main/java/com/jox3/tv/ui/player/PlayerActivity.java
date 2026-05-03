@@ -18,7 +18,9 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -49,7 +51,6 @@ public class PlayerActivity extends AppCompatActivity {
 
     public static volatile boolean requestClose = false;
 
-    // Compatibilidad con ChannelAdapter existente
     public static final String EXTRA_URL   = "extra_url";
     public static final String EXTRA_TITLE = "extra_title";
     public static final String EXTRA_TYPE  = "extra_type";
@@ -66,10 +67,29 @@ public class PlayerActivity extends AppCompatActivity {
     // VOD/Series buttons
     private Button btnPlayPause, btnRewind, btnForward;
     private Button btnAudio, btnSubs, btnPip, btnStopVod;
+    private Button btnSpeed, btnLock;
 
     // Seek
     private SeekBar seekBar;
     private TextView tvPosition, tvDuration;
+
+    // Indicador visual gesto
+    private LinearLayout gestureIndicator;
+    private ImageView gestureIcon;
+    private ProgressBar gestureProgress;
+    private TextView gestureLabel;
+
+    // Bloqueo
+    private boolean screenLocked = false;
+    private View lockOverlay;
+
+    // Auto-next episode
+    private List<com.jox3.tv.model.EpgProgram> episodeList = null;
+    private int currentEpisodeIdx = -1;
+    private View nextEpisodePanel;
+    private TextView tvNextEpisodeTitle;
+    private boolean nextEpisodeShown = false;
+    private Runnable autoNextRunnable;
 
     private MediaItem item;
     private AppPrefs prefs;
@@ -81,6 +101,7 @@ public class PlayerActivity extends AppCompatActivity {
     private boolean playerReleased = false;
     private boolean seekBarTracking = false;
     private int retryCount = 0;
+    private float currentSpeed = 1.0f;
 
     private AudioManager audioManager;
     private float gestStartX, gestStartY;
@@ -105,6 +126,7 @@ public class PlayerActivity extends AppCompatActivity {
     private final Runnable seekUpdateRunnable = new Runnable() {
         @Override public void run() {
             updateSeekBar();
+            checkAutoNext();
             handler.postDelayed(this, 500);
         }
     };
@@ -125,7 +147,6 @@ public class PlayerActivity extends AppCompatActivity {
 
         item = (MediaItem) getIntent().getSerializableExtra("item");
 
-        // Compatibilidad con ChannelAdapter que usa EXTRA_URL/TITLE/TYPE
         if (item == null) {
             String url   = getIntent().getStringExtra(EXTRA_URL);
             String title = getIntent().getStringExtra(EXTRA_TITLE);
@@ -147,7 +168,6 @@ public class PlayerActivity extends AppCompatActivity {
             return;
         }
 
-        // Receiver para cerrar PiP
         pipCloseReceiver = new BroadcastReceiver() {
             @Override public void onReceive(Context ctx, Intent i) { exitPlayer(); }
         };
@@ -227,30 +247,57 @@ public class PlayerActivity extends AppCompatActivity {
         layoutVodBtns   = findViewById(R.id.layout_vod_btns);
 
         // Live
-        btnPrev         = findViewById(R.id.btn_prev);
-        btnNext         = findViewById(R.id.btn_next);
-        btnPipLive      = findViewById(R.id.btn_pip_live);
-        btnStop         = findViewById(R.id.btn_stop);
+        btnPrev     = findViewById(R.id.btn_prev);
+        btnNext     = findViewById(R.id.btn_next);
+        btnPipLive  = findViewById(R.id.btn_pip_live);
+        btnStop     = findViewById(R.id.btn_stop);
 
         // VOD
-        btnPlayPause    = findViewById(R.id.btn_play_pause);
-        btnRewind       = findViewById(R.id.btn_rewind);
-        btnForward      = findViewById(R.id.btn_forward);
-        btnAudio        = findViewById(R.id.btn_audio);
-        btnSubs         = findViewById(R.id.btn_subs);
-        btnPip          = findViewById(R.id.btn_pip);
-        btnStopVod      = findViewById(R.id.btn_stop_vod);
+        btnPlayPause = findViewById(R.id.btn_play_pause);
+        btnRewind    = findViewById(R.id.btn_rewind);
+        btnForward   = findViewById(R.id.btn_forward);
+        btnAudio     = findViewById(R.id.btn_audio);
+        btnSubs      = findViewById(R.id.btn_subs);
+        btnPip       = findViewById(R.id.btn_pip);
+        btnStopVod   = findViewById(R.id.btn_stop_vod);
+        btnSpeed     = findViewById(R.id.btn_speed);
+        btnLock      = findViewById(R.id.btn_lock);
 
         // Seek
-        seekBar         = findViewById(R.id.seek_bar);
-        tvPosition      = findViewById(R.id.tv_position);
-        tvDuration      = findViewById(R.id.tv_duration);
+        seekBar    = findViewById(R.id.seek_bar);
+        tvPosition = findViewById(R.id.tv_position);
+        tvDuration = findViewById(R.id.tv_duration);
+
+        // Indicador gesto
+        gestureIndicator = findViewById(R.id.gesture_indicator);
+        gestureIcon      = findViewById(R.id.gesture_icon);
+        gestureProgress  = findViewById(R.id.gesture_progress);
+        gestureLabel     = findViewById(R.id.gesture_label);
+
+        // Lock overlay
+        lockOverlay = findViewById(R.id.lock_overlay);
+        if (lockOverlay != null) {
+            lockOverlay.setOnClickListener(v -> {
+                // Mostrar botón desbloquear brevemente
+                if (btnLock != null) {
+                    btnLock.setVisibility(View.VISIBLE);
+                    btnLock.setText("🔓 Toca para desbloquear");
+                    handler.postDelayed(() -> {
+                        if (screenLocked && btnLock != null)
+                            btnLock.setVisibility(View.GONE);
+                    }, 2000);
+                }
+            });
+        }
+
+        // Panel siguiente episodio
+        nextEpisodePanel  = findViewById(R.id.next_episode_panel);
+        tvNextEpisodeTitle = findViewById(R.id.tv_next_episode_title);
 
         playerView.setPadding(0, 0, 0, 0);
         tvName.setText(item.name);
         updateFavBtn();
 
-        // Listeners comunes
         btnBack.setOnClickListener(v -> exitPlayer());
         btnFav.setOnClickListener(v -> { prefs.toggleFav(item.favKey()); updateFavBtn(); });
 
@@ -260,7 +307,7 @@ public class PlayerActivity extends AppCompatActivity {
         btnPipLive.setOnClickListener(v -> enterPip());
         btnStop.setOnClickListener(v -> exitPlayer());
 
-        // VOD/Series
+        // VOD
         btnPlayPause.setOnClickListener(v -> togglePlayPause());
         btnRewind.setOnClickListener(v -> {
             if (player != null)
@@ -275,6 +322,12 @@ public class PlayerActivity extends AppCompatActivity {
         btnSubs.setOnClickListener(v -> showSubtitleTracks());
         btnPip.setOnClickListener(v -> enterPip());
         btnStopVod.setOnClickListener(v -> exitPlayer());
+
+        // Velocidad
+        if (btnSpeed != null) btnSpeed.setOnClickListener(v -> showSpeedDialog());
+
+        // Bloqueo
+        if (btnLock != null) btnLock.setOnClickListener(v -> toggleLock());
 
         // SeekBar
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -296,20 +349,128 @@ public class PlayerActivity extends AppCompatActivity {
 
         setupButtonsForType();
 
-        playerView.setOnClickListener(v -> { if (!isTv && !isInPip) toggleBars(); });
+        playerView.setOnClickListener(v -> {
+            if (screenLocked) return;
+            if (!isTv && !isInPip) toggleBars();
+        });
         playerView.setOnTouchListener(this::onTouch);
     }
 
     private void setupButtonsForType() {
         boolean isLive = item.type.equals(MediaItem.LIVE);
-        if (item.type.equals(MediaItem.VOD)) {
-            playerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FILL);
-        } else {
-            playerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FILL);
-        }
+        playerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FILL);
         layoutLiveBtns.setVisibility(isLive ? View.VISIBLE : View.GONE);
         layoutVodBtns.setVisibility(isLive ? View.GONE : View.VISIBLE);
         layoutSeek.setVisibility(isLive ? View.GONE : View.VISIBLE);
+        // Velocidad y bloqueo solo en VOD/Series
+        if (btnSpeed != null) btnSpeed.setVisibility(isLive ? View.GONE : View.VISIBLE);
+        if (btnLock  != null) btnLock.setVisibility(View.VISIBLE);
+    }
+
+    // ── Velocidad ──
+    private void showSpeedDialog() {
+        String[] speeds = {"0.5x", "0.75x", "1x (Normal)", "1.25x", "1.5x", "2x"};
+        float[]  vals   = {0.5f,    0.75f,    1.0f,          1.25f,   1.5f,   2.0f};
+        int current = 2;
+        for (int i = 0; i < vals.length; i++)
+            if (vals[i] == currentSpeed) { current = i; break; }
+
+        new AlertDialog.Builder(this)
+            .setTitle("Velocidad de reproducción")
+            .setSingleChoiceItems(speeds, current, (d, which) -> {
+                currentSpeed = vals[which];
+                if (player != null)
+                    player.setPlaybackSpeed(currentSpeed);
+                if (btnSpeed != null)
+                    btnSpeed.setText(currentSpeed == 1.0f ? "1x" :
+                        speeds[which].replace(" (Normal)", ""));
+                d.dismiss();
+            })
+            .setNegativeButton("Cancelar", null)
+            .show();
+    }
+
+    // ── Bloqueo pantalla ──
+    private void toggleLock() {
+        screenLocked = !screenLocked;
+        if (lockOverlay != null)
+            lockOverlay.setVisibility(screenLocked ? View.VISIBLE : View.GONE);
+        if (btnLock != null) {
+            if (screenLocked) {
+                btnLock.setText("🔒");
+                hideBars();
+                // Mostrar ícono de candado brevemente
+                btnLock.setVisibility(View.VISIBLE);
+                handler.postDelayed(() -> {
+                    if (screenLocked) btnLock.setVisibility(View.GONE);
+                }, 2000);
+            } else {
+                btnLock.setText("🔓");
+                btnLock.setVisibility(View.VISIBLE);
+                showBars();
+            }
+        }
+    }
+
+    // ── Auto siguiente episodio ──
+    public void setEpisodeList(List<MediaItem> episodes, int currentIdx) {
+        this.episodeList = null; // No usar EpgProgram, usar MediaItem directo
+        this.currentEpisodeIdx = currentIdx;
+        // Guardar como lista de MediaItem en AppState
+        state.episodeQueue = episodes;
+        state.episodeIdx   = currentIdx;
+    }
+
+    private void checkAutoNext() {
+        if (player == null || nextEpisodeShown) return;
+        if (state.episodeQueue == null || state.episodeQueue.isEmpty()) return;
+        if (state.episodeIdx < 0 || state.episodeIdx >= state.episodeQueue.size() - 1) return;
+        if (!item.type.equals(MediaItem.VOD)) return;
+
+        long dur = player.getDuration();
+        long pos = player.getCurrentPosition();
+        if (dur <= 0) return;
+
+        long remaining = dur - pos;
+        // Mostrar panel cuando falte 1 minuto
+        if (remaining <= 60000 && remaining > 0) {
+            nextEpisodeShown = true;
+            showNextEpisodePanel();
+        }
+    }
+
+    private void showNextEpisodePanel() {
+        if (nextEpisodePanel == null) return;
+        MediaItem next = state.episodeQueue.get(state.episodeIdx + 1);
+        if (tvNextEpisodeTitle != null)
+            tvNextEpisodeTitle.setText("Siguiente: " + next.name);
+
+        nextEpisodePanel.setVisibility(View.VISIBLE);
+
+        // Botón reproducir siguiente
+        View btnPlayNext = nextEpisodePanel.findViewById(R.id.btn_play_next);
+        View btnSkipNext = nextEpisodePanel.findViewById(R.id.btn_skip_next);
+
+        if (btnPlayNext != null) btnPlayNext.setOnClickListener(v -> {
+            nextEpisodePanel.setVisibility(View.GONE);
+            playNextEpisode(next);
+        });
+
+        if (btnSkipNext != null) btnSkipNext.setOnClickListener(v -> {
+            nextEpisodePanel.setVisibility(View.GONE);
+            // Temporizador de 10 segundos para auto-siguiente
+            handler.postDelayed(() -> playNextEpisode(next), 10000);
+            Toast.makeText(this, "Reproduciendo siguiente en 10 segundos...",
+                Toast.LENGTH_LONG).show();
+        });
+    }
+
+    private void playNextEpisode(MediaItem next) {
+        state.episodeIdx++;
+        item = next;
+        tvName.setText(item.name);
+        nextEpisodeShown = false;
+        initPlayer();
     }
 
     private void togglePlayPause() {
@@ -349,14 +510,10 @@ public class PlayerActivity extends AppCompatActivity {
         new AlertDialog.Builder(this)
             .setTitle("Seleccionar audio")
             .setItems(names.toArray(new String[0]), (d, which) -> {
-                TrackGroup tg = groups.get(which);
                 player.setTrackSelectionParameters(
                     player.getTrackSelectionParameters().buildUpon()
-                        .setOverrideForType(new TrackSelectionOverride(tg, 0))
+                        .setOverrideForType(new TrackSelectionOverride(groups.get(which), 0))
                         .build());
-                btnAudio.setBackgroundTintList(
-                    android.content.res.ColorStateList.valueOf(
-                        android.graphics.Color.parseColor("#00D4FF")));
             })
             .setNegativeButton("Cancelar", null)
             .show();
@@ -374,9 +531,8 @@ public class PlayerActivity extends AppCompatActivity {
             if (g.getType() == C.TRACK_TYPE_TEXT) {
                 for (int i = 0; i < g.length; i++) {
                     androidx.media3.common.Format f = g.getTrackFormat(i);
-                    String lang = f.language != null ? f.language.toUpperCase() : "Sub " + (groups.size());
-                    String label = f.label != null ? f.label : lang;
-                    names.add(label);
+                    String lang = f.language != null ? f.language.toUpperCase() : "Sub " + groups.size();
+                    names.add(f.label != null ? f.label : lang);
                     groups.add(g.getMediaTrackGroup());
                 }
             }
@@ -391,24 +547,16 @@ public class PlayerActivity extends AppCompatActivity {
             .setTitle("Subtítulos")
             .setItems(names.toArray(new String[0]), (d, which) -> {
                 if (which == 0) {
-                    // Desactivar
                     player.setTrackSelectionParameters(
                         player.getTrackSelectionParameters().buildUpon()
                             .setDisabledTrackTypes(
                                 com.google.common.collect.ImmutableSet.of(C.TRACK_TYPE_TEXT))
                             .build());
-                    btnSubs.setBackgroundTintList(
-                        android.content.res.ColorStateList.valueOf(
-                            android.graphics.Color.parseColor("#1a2535")));
                 } else {
-                    TrackGroup tg = groups.get(which);
                     player.setTrackSelectionParameters(
                         player.getTrackSelectionParameters().buildUpon()
-                            .setOverrideForType(new TrackSelectionOverride(tg, 0))
+                            .setOverrideForType(new TrackSelectionOverride(groups.get(which), 0))
                             .build());
-                    btnSubs.setBackgroundTintList(
-                        android.content.res.ColorStateList.valueOf(
-                            android.graphics.Color.parseColor("#00D4FF")));
                 }
             })
             .setNegativeButton("Cancelar", null)
@@ -418,8 +566,10 @@ public class PlayerActivity extends AppCompatActivity {
     private void initPlayer() {
         if (player != null) { player.release(); player = null; }
         playerReleased = false;
+        nextEpisodeShown = false;
+        if (nextEpisodePanel != null) nextEpisodePanel.setVisibility(View.GONE);
         setStatus("Cargando...");
-        btnPlayPause.setText("⏸");
+        if (btnPlayPause != null) btnPlayPause.setText("⏸");
 
         player = new ExoPlayer.Builder(this).build();
         playerView.setPlayer(player);
@@ -433,7 +583,6 @@ public class PlayerActivity extends AppCompatActivity {
                 .setMimeType(androidx.media3.common.MimeTypes.APPLICATION_M3U8)
                 .build();
         } else if (url.contains(".mkv") || url.contains(".avi") || url.contains(".ts")) {
-            // Forzar tipo video para contenedores que ExoPlayer puede no detectar
             mi = new androidx.media3.common.MediaItem.Builder()
                 .setUri(url)
                 .setMimeType("video/x-matroska")
@@ -445,9 +594,9 @@ public class PlayerActivity extends AppCompatActivity {
         player.setMediaItem(mi);
         player.prepare();
         player.setPlayWhenReady(true);
+        player.setPlaybackSpeed(currentSpeed);
         player.addListener(makeListener());
 
-        // Preguntar continuar VOD
         if (item.type.equals(MediaItem.VOD)) {
             long pos = prefs.getPos(item.id);
             long dur = prefs.getDur(item.id);
@@ -550,7 +699,7 @@ public class PlayerActivity extends AppCompatActivity {
         topBar.setVisibility(View.VISIBLE);
         bottomBar.setVisibility(View.VISIBLE);
         if (!isTv) {
-            handler.removeCallbacksAndMessages(null);
+            handler.removeCallbacks(this::hideBars);
             handler.postDelayed(this::hideBars, 4000);
             if (!item.type.equals(MediaItem.LIVE))
                 handler.post(seekUpdateRunnable);
@@ -558,7 +707,7 @@ public class PlayerActivity extends AppCompatActivity {
     }
 
     private void hideBars() {
-        if (isTv) return;
+        if (isTv || screenLocked) return;
         barsVisible = false;
         topBar.setVisibility(View.GONE);
         bottomBar.setVisibility(View.GONE);
@@ -566,6 +715,27 @@ public class PlayerActivity extends AppCompatActivity {
 
     private void setStatus(String s) { runOnUiThread(() -> tvStatus.setText(s)); }
     private void updateFavBtn() { btnFav.setText(prefs.isFav(item.favKey()) ? "★" : "☆"); }
+
+    // ── Indicador visual gesto ──
+    private void showGestureIndicator(boolean isVolume, int value, int max, String label) {
+        if (gestureIndicator == null) return;
+        gestureIndicator.setVisibility(View.VISIBLE);
+        if (gestureIcon != null)
+            gestureIcon.setImageResource(isVolume ?
+                android.R.drawable.ic_lock_silent_mode_off :
+                android.R.drawable.ic_menu_view);
+        if (gestureProgress != null) {
+            gestureProgress.setMax(max);
+            gestureProgress.setProgress(value);
+        }
+        if (gestureLabel != null) gestureLabel.setText(label);
+        handler.removeCallbacks(hideGestureRunnable);
+        handler.postDelayed(hideGestureRunnable, 800);
+    }
+
+    private final Runnable hideGestureRunnable = () -> {
+        if (gestureIndicator != null) gestureIndicator.setVisibility(View.GONE);
+    };
 
     private void enterPip() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -630,7 +800,7 @@ public class PlayerActivity extends AppCompatActivity {
 
     @SuppressLint("ClickableViewAccessibility")
     private boolean onTouch(View v, MotionEvent e) {
-        if (isInPip) return false;
+        if (isInPip || screenLocked) return false;
         float w = v.getWidth(), h = v.getHeight();
         switch (e.getAction()) {
             case MotionEvent.ACTION_DOWN:
@@ -660,11 +830,15 @@ public class PlayerActivity extends AppCompatActivity {
                     int max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
                     int vol = Math.max(0, Math.min(max, (int)(gestStartVol - dy / h * max)));
                     audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, vol, 0);
+                    int pct = (int)(vol * 100f / max);
+                    showGestureIndicator(true, vol, max, "🔊 " + pct + "%");
                 } else if (gestIsBright && Math.abs(dy) > Math.abs(dx)) {
                     float bright = Math.max(0.01f, Math.min(1f, gestStartBright - dy / h));
                     WindowManager.LayoutParams lp = getWindow().getAttributes();
                     lp.screenBrightness = bright;
                     getWindow().setAttributes(lp);
+                    int pct = (int)(bright * 100f);
+                    showGestureIndicator(false, pct, 100, "☀️ " + pct + "%");
                 } else if (gestIsSeek && Math.abs(dx) > Math.abs(dy) && player != null
                            && !item.type.equals(MediaItem.LIVE)) {
                     long pos = Math.max(0, Math.min(player.getDuration(),
