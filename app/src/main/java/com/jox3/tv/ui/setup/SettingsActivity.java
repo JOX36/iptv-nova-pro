@@ -11,7 +11,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AppCompatActivity;
+import com.jox3.tv.ui.BaseActivity;
 
 import com.jox3.tv.R;
 import com.jox3.tv.util.AppPrefs;
@@ -24,7 +24,7 @@ import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class SettingsActivity extends AppCompatActivity {
+public class SettingsActivity extends BaseActivity {
 
     private final ExecutorService exec = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -33,6 +33,7 @@ public class SettingsActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_settings);
+        applyTheme();
 
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
 
@@ -180,7 +181,16 @@ public class SettingsActivity extends AppCompatActivity {
             card.addView(tvName);
 
             card.setOnClickListener(v -> {
-                ThemeManager.applyAndRestart(this, skin.id);
+                ThemeManager.setSkin(this, skin.id);
+                // Reiniciar app completa para aplicar colores
+                android.content.Intent intent = getPackageManager()
+                    .getLaunchIntentForPackage(getPackageName());
+                if (intent != null) {
+                    intent.addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK |
+                                   android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(intent);
+                }
+                android.os.Process.killProcess(android.os.Process.myPid());
             });
 
             container.addView(card);
