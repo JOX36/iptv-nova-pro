@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:id="@+id/nav_home"   android:title="Home"     android:icon="@android:drawable/ic_menu_compass"/>
-    <item android:id="@+id/nav_live"   android:title="Live"     android:icon="@android:drawable/ic_menu_camera"/>
-    <item android:id="@+id/nav_vod"    android:title="Peliculas" android:icon="@android:drawable/ic_menu_slideshow"/>
-    <item android:id="@+id/nav_series" android:title="Series"   android:icon="@android:drawable/ic_menu_agenda"/>
-    <item android:id="@+id/nav_search" android:title="Buscar"   android:icon="@android:drawable/ic_search_category_default"/>
+    <item android:id="@+id/nav_home"   android:title="Inicio"    android:icon="@android:drawable/ic_menu_compass"/>
+    <item android:id="@+id/nav_live"   android:title="En Vivo"   android:icon="@android:drawable/ic_menu_camera"/>
+    <item android:id="@+id/nav_vod"    android:title="Películas" android:icon="@android:drawable/ic_menu_slideshow"/>
+    <item android:id="@+id/nav_series" android:title="Series"    android:icon="@android:drawable/ic_menu_agenda"/>
+    <item android:id="@+id/nav_search" android:title="Buscar"    android:icon="@android:drawable/ic_search_category_default"/>
 </menu>
