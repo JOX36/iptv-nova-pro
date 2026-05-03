@@ -21,6 +21,8 @@ public class AppState {
     public List<Category> seriesCats = new ArrayList<>();
 
     public MediaItem current;
+    public List<MediaItem> episodeQueue = new ArrayList<>();
+    public int episodeIdx = -1;
     public List<MediaItem> channelList = new ArrayList<>();
     public int channelIdx = -1;
 
