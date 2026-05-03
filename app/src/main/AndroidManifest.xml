@@ -7,6 +7,7 @@
 
     <application
         android:allowBackup="false"
+        android:name=".JOX3App"
         android:label="JOX3 TV"
         android:theme="@style/Theme.JOX3TV"
         android:usesCleartextTraffic="true">
