@@ -33,17 +33,7 @@
                 android:paddingTop="8dp"
                 android:paddingBottom="4dp">
 
-                <TextView
-                    android:id="@+id/btn_menu"
-                    android:layout_width="44dp"
-                    android:layout_height="44dp"
-                    android:gravity="center"
-                    android:text="="
-                    android:textSize="22sp"
-                    android:textColor="@color/accent"
-                    android:background="?attr/selectableItemBackgroundBorderless"/>
-
-                <LinearLayout
+<LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
@@ -97,14 +87,32 @@
 
             </LinearLayout>
 
-            <!-- Buscador sin hint molesto -->
+            <!-- Buscador con botón menú a la izquierda -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:paddingStart="10dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="6dp"
                 android:paddingEnd="10dp"
                 android:paddingBottom="6dp">
+
+                <TextView
+                    android:id="@+id/btn_menu"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:gravity="center"
+                    android:text="="
+                    android:textSize="22sp"
+                    android:textColor="@color/accent"
+                    android:layout_marginEnd="4dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"/>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_search"
@@ -178,7 +186,9 @@
                     android:paddingTop="4dp"
                     android:visibility="gone"/>
 
-            </LinearLayout>
+                </LinearLayout><!-- cierre LinearLayout interno -->
+
+            </LinearLayout><!-- cierre fila buscador+menú -->
 
             <!-- Loading bar -->
             <com.google.android.material.progressindicator.LinearProgressIndicator
