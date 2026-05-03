@@ -383,12 +383,30 @@
 
     </LinearLayout>
 
-    <!-- Overlay bloqueo pantalla -->
+    <!-- Overlay bloqueo — fondo semitransparente -->
     <View
         android:id="@+id/lock_overlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="#00000000"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone"/>
+
+    <!-- Botón desbloquear — siempre visible cuando está bloqueado -->
+    <TextView
+        android:id="@+id/btn_unlock"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:text="🔒  Toca para desbloquear"
+        android:textSize="14sp"
+        android:textColor="#FFFFFF"
+        android:background="#CC000000"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
         android:visibility="gone"/>
 
     <!-- Panel siguiente episodio -->
