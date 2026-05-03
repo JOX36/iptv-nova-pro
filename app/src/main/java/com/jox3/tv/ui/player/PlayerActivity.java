@@ -82,6 +82,7 @@ public class PlayerActivity extends AppCompatActivity {
     // Bloqueo
     private boolean screenLocked = false;
     private View lockOverlay;
+    private TextView btnUnlock;
 
     // Auto-next episode
     private List<com.jox3.tv.model.EpgProgram> episodeList = null;
@@ -276,19 +277,8 @@ public class PlayerActivity extends AppCompatActivity {
 
         // Lock overlay
         lockOverlay = findViewById(R.id.lock_overlay);
-        if (lockOverlay != null) {
-            lockOverlay.setOnClickListener(v -> {
-                // Mostrar botón desbloquear brevemente
-                if (btnLock != null) {
-                    btnLock.setVisibility(View.VISIBLE);
-                    btnLock.setText("🔓 Toca para desbloquear");
-                    handler.postDelayed(() -> {
-                        if (screenLocked && btnLock != null)
-                            btnLock.setVisibility(View.GONE);
-                    }, 2000);
-                }
-            });
-        }
+        btnUnlock  = findViewById(R.id.btn_unlock);
+
 
         // Panel siguiente episodio
         nextEpisodePanel  = findViewById(R.id.next_episode_panel);
@@ -395,20 +385,21 @@ public class PlayerActivity extends AppCompatActivity {
         screenLocked = !screenLocked;
         if (lockOverlay != null)
             lockOverlay.setVisibility(screenLocked ? View.VISIBLE : View.GONE);
-        if (btnLock != null) {
+        if (btnUnlock != null) {
+            btnUnlock.setVisibility(screenLocked ? View.VISIBLE : View.GONE);
             if (screenLocked) {
-                btnLock.setText("🔒");
-                hideBars();
-                // Mostrar ícono de candado brevemente
-                btnLock.setVisibility(View.VISIBLE);
-                handler.postDelayed(() -> {
-                    if (screenLocked) btnLock.setVisibility(View.GONE);
-                }, 2000);
-            } else {
-                btnLock.setText("🔓");
-                btnLock.setVisibility(View.VISIBLE);
-                showBars();
+                btnUnlock.setOnClickListener(v -> toggleLock());
             }
+        }
+        if (btnLock != null) {
+            btnLock.setText(screenLocked ? "🔒" : "🔓");
+        }
+        if (screenLocked) {
+            hideBars();
+            Toast.makeText(this, "Pantalla bloqueada", Toast.LENGTH_SHORT).show();
+        } else {
+            showBars();
+            Toast.makeText(this, "Pantalla desbloqueada", Toast.LENGTH_SHORT).show();
         }
     }
 
