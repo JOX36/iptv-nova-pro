@@ -215,30 +215,16 @@
         </FrameLayout>
 
         <!-- Bottom nav -->
-        <!-- Barra inferior con borde superior -->
-        <LinearLayout
+            <com.google.android.material.bottomnavigation.BottomNavigationView
+            android:id="@+id/bottom_nav"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
-
-            <!-- Borde superior cyan -->
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="2dp"
-                android:background="@color/accent"/>
-
-            <com.google.android.material.bottomnavigation.BottomNavigationView
-                android:id="@+id/bottom_nav"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@color/bg2"
-                app:itemIconTint="@color/nav_selector"
-                app:itemTextColor="@color/nav_selector"
-                app:itemRippleColor="@color/accent"
-                app:labelVisibilityMode="labeled"
-                app:menu="@menu/bottom_nav"/>
-
-        </LinearLayout>
+            android:background="@color/bg2"
+            app:itemIconTint="@color/nav_selector"
+            app:itemTextColor="@color/nav_selector"
+            app:itemRippleColor="@color/accent"
+            app:labelVisibilityMode="labeled"
+            app:menu="@menu/bottom_nav"/>
 
     </LinearLayout>
 
