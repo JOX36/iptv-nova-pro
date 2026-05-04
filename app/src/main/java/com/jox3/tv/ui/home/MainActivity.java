@@ -100,9 +100,9 @@ public class MainActivity extends BaseActivity {
         isHomeMode = true;
         swipeRefresh.setVisibility(View.GONE);
         rvContent.setVisibility(View.GONE);
-        // Ocultar menú y deshabilitar sidebar en Home
+        // Ocultar menú — buscador ocupa todo el ancho en Home
         View btnMenu = findViewById(R.id.btn_menu);
-        if (btnMenu != null) btnMenu.setVisibility(View.INVISIBLE);
+        if (btnMenu != null) btnMenu.setVisibility(View.GONE);
         drawerLayout.setDrawerLockMode(androidx.drawerlayout.widget.DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
         if (homeView == null) {
             homeView = LayoutInflater.from(this)
@@ -141,8 +141,8 @@ public class MainActivity extends BaseActivity {
         swipeRefresh.setVisibility(View.VISIBLE);
         rvContent.setVisibility(View.VISIBLE);
         // Mostrar menú y habilitar sidebar fuera del Home
-        View btnMenu = findViewById(R.id.btn_menu);
-        if (btnMenu != null) btnMenu.setVisibility(View.VISIBLE);
+        View btnMenu2 = findViewById(R.id.btn_menu);
+        if (btnMenu2 != null) btnMenu2.setVisibility(View.VISIBLE);
         drawerLayout.setDrawerLockMode(androidx.drawerlayout.widget.DrawerLayout.LOCK_MODE_UNLOCKED);
     }
 
