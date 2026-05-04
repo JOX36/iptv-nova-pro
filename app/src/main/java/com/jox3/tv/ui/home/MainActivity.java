@@ -276,12 +276,20 @@ public class MainActivity extends BaseActivity {
 
         if (showProgress) {
             int pct = prefs.progressPct(m.id);
-            if (pct > 2 && pct < 95) {
+            // Para series buscar progreso del último episodio en cola
+            if (pct == 0 && MediaItem.SERIES.equals(m.type)) {
+                for (MediaItem ep : state.episodeQueue) {
+                    int epPct = prefs.progressPct(ep.id);
+                    if (epPct > pct) pct = epPct;
+                }
+            }
+            if (pct > 2 && pct < 98) {
                 progBg.setVisibility(View.VISIBLE);
                 progBar.setVisibility(View.VISIBLE);
+                final int finalPct = pct;
                 progBar.post(() -> {
                     ViewGroup.LayoutParams lp = progBar.getLayoutParams();
-                    lp.width = (int)(progBg.getWidth() * pct / 100f);
+                    lp.width = (int)(progBg.getWidth() * finalPct / 100f);
                     progBar.setLayoutParams(lp);
                 });
             }
