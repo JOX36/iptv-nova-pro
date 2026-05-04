@@ -87,14 +87,14 @@
 
             </LinearLayout>
 
-            <!-- Buscador con botón menú a la izquierda -->
+            <!-- Buscador con botón menú opcional -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:paddingStart="6dp"
-                android:paddingEnd="10dp"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
                 android:paddingBottom="6dp">
 
                 <TextView
@@ -106,6 +106,7 @@
                     android:textSize="22sp"
                     android:textColor="@color/accent"
                     android:layout_marginEnd="4dp"
+                    android:visibility="gone"
                     android:background="?attr/selectableItemBackgroundBorderless"/>
 
                 <LinearLayout
@@ -118,14 +119,14 @@
                     android:id="@+id/et_search"
                     android:layout_width="match_parent"
                     android:layout_height="40dp"
-                    android:hint="Buscar..."
+                    android:hint="🔍  Buscar canales, películas, series..."
                     android:inputType="text"
                     android:textSize="13sp"
                     android:textColor="@color/text"
                     android:textColorHint="@color/muted"
-                    android:background="@color/bg3"
-                    android:paddingStart="12dp"
-                    android:paddingEnd="12dp"
+                    android:background="@drawable/bg_search"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
                     android:imeOptions="actionSearch"
                     android:maxLines="1"/>
 
