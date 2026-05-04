@@ -67,7 +67,7 @@ public class PlayerActivity extends AppCompatActivity {
     // VOD/Series buttons
     private Button btnPlayPause, btnRewind, btnForward;
     private Button btnAudio, btnSubs, btnPip, btnStopVod;
-    private Button btnSpeed, btnLock;
+    private Button btnSpeed, btnLock, btnPrevEp, btnNextEp;
 
     // Seek
     private SeekBar seekBar;
@@ -263,6 +263,8 @@ public class PlayerActivity extends AppCompatActivity {
         btnStopVod   = findViewById(R.id.btn_stop_vod);
         btnSpeed     = findViewById(R.id.btn_speed);
         btnLock      = findViewById(R.id.btn_lock);
+        btnPrevEp    = findViewById(R.id.btn_prev_ep);
+        btnNextEp    = findViewById(R.id.btn_next_ep);
 
         // Seek
         seekBar    = findViewById(R.id.seek_bar);
@@ -324,7 +326,11 @@ public class PlayerActivity extends AppCompatActivity {
         btnStopVod.setOnClickListener(v -> exitPlayer());
 
         // Velocidad
-        if (btnSpeed != null) btnSpeed.setOnClickListener(v -> showSpeedDialog());
+        if (btnSpeed  != null) btnSpeed.setOnClickListener(v -> showSpeedDialog());
+
+        // Episodios anterior/siguiente
+        if (btnPrevEp != null) btnPrevEp.setOnClickListener(v -> navigateEpisode(-1));
+        if (btnNextEp != null) btnNextEp.setOnClickListener(v -> navigateEpisode(1));
 
         // Bloqueo
         if (btnLock != null) btnLock.setOnClickListener(v -> toggleLock());
@@ -363,8 +369,10 @@ public class PlayerActivity extends AppCompatActivity {
         layoutVodBtns.setVisibility(isLive ? View.GONE : View.VISIBLE);
         layoutSeek.setVisibility(isLive ? View.GONE : View.VISIBLE);
         // Velocidad y bloqueo solo en VOD/Series
-        if (btnSpeed != null) btnSpeed.setVisibility(isLive ? View.GONE : View.VISIBLE);
-        if (btnLock  != null) btnLock.setVisibility(View.VISIBLE);
+        if (btnSpeed  != null) btnSpeed.setVisibility(isLive ? View.GONE : View.VISIBLE);
+        if (btnLock   != null) btnLock.setVisibility(View.VISIBLE);
+        // Botones episodios solo si hay cola de episodios
+        updateEpisodeNavButtons();
     }
 
     // ── Velocidad ──
@@ -428,6 +436,27 @@ public class PlayerActivity extends AppCompatActivity {
         // Guardar como lista de MediaItem en AppState
         state.episodeQueue = episodes;
         state.episodeIdx   = currentIdx;
+    }
+
+    private void navigateEpisode(int dir) {
+        if (state.episodeQueue == null || state.episodeQueue.isEmpty()) return;
+        int newIdx = state.episodeIdx + dir;
+        if (newIdx < 0 || newIdx >= state.episodeQueue.size()) return;
+        state.episodeIdx = newIdx;
+        item = state.episodeQueue.get(newIdx);
+        tvName.setText(item.name);
+        nextEpisodeShown = false;
+        if (nextEpisodePanel != null) nextEpisodePanel.setVisibility(View.GONE);
+        updateEpisodeNavButtons();
+        initPlayer();
+    }
+
+    private void updateEpisodeNavButtons() {
+        boolean hasQueue = state.episodeQueue != null && !state.episodeQueue.isEmpty();
+        if (btnPrevEp != null)
+            btnPrevEp.setVisibility(hasQueue && state.episodeIdx > 0 ? View.VISIBLE : View.GONE);
+        if (btnNextEp != null)
+            btnNextEp.setVisibility(hasQueue && state.episodeIdx < state.episodeQueue.size() - 1 ? View.VISIBLE : View.GONE);
     }
 
     private void checkAutoNext() {
