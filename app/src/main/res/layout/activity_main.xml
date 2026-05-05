@@ -109,12 +109,6 @@
                     android:visibility="gone"
                     android:background="?attr/selectableItemBackgroundBorderless"/>
 
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_search"
                     android:layout_width="0dp"
@@ -197,8 +191,6 @@
                     android:textColor="@color/accent"
                     android:paddingTop="4dp"
                     android:visibility="gone"/>
-
-                </LinearLayout><!-- cierre LinearLayout interno -->
 
             </LinearLayout><!-- cierre fila buscador+menú -->
 
