@@ -163,7 +163,14 @@ public class MainActivity extends BaseActivity {
         loadHomeContent();
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        mainHandler.removeCallbacks(bannerRunnable);
+    }
+
     private void hideHome() {
+        mainHandler.removeCallbacks(bannerRunnable);
         if (homeView != null) homeView.setVisibility(View.GONE);
         swipeRefresh.setVisibility(View.VISIBLE);
         rvContent.setVisibility(View.VISIBLE);
@@ -282,6 +289,7 @@ public class MainActivity extends BaseActivity {
     }
 
     private void updateBanner() {
+        if (isDestroyed() || isFinishing()) return;
         if (bannerItems.isEmpty() || bannerContainer == null) return;
         MediaItem m = bannerItems.get(bannerIdx);
         bannerContainer.setVisibility(View.VISIBLE);
@@ -308,6 +316,7 @@ public class MainActivity extends BaseActivity {
     }
 
     private void nextBanner() {
+        if (isDestroyed() || isFinishing()) return;
         if (bannerItems.isEmpty()) return;
         bannerIdx = (bannerIdx + 1) % bannerItems.size();
         if (bannerImage != null) {
