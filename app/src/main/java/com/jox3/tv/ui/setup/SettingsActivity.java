@@ -148,10 +148,11 @@ public class SettingsActivity extends BaseActivity {
                     .setTitle("Limpiar indexación")
                     .setMessage("Se borrará el índice de búsqueda. La app lo recargará al iniciar.")
                     .setPositiveButton("Limpiar", (d, w) -> {
-                        for (com.jox3.tv.model.Category c : AppState.get().liveCats)   { c.items = null; c.loaded = false; }
-                        for (com.jox3.tv.model.Category c : AppState.get().vodCats)    { c.items = null; c.loaded = false; }
-                        for (com.jox3.tv.model.Category c : AppState.get().seriesCats) { c.items = null; c.loaded = false; }
-                        Toast.makeText(this, "Indexación limpiada", Toast.LENGTH_SHORT).show();
+                        for (com.jox3.tv.model.Category cat : AppState.get().liveCats)   { cat.items = new java.util.ArrayList<>(); cat.loaded = false; }
+                        for (com.jox3.tv.model.Category cat : AppState.get().vodCats)    { cat.items = new java.util.ArrayList<>(); cat.loaded = false; }
+                        for (com.jox3.tv.model.Category cat : AppState.get().seriesCats) { cat.items = new java.util.ArrayList<>(); cat.loaded = false; }
+                        new AppPrefs(this).clearIndex();
+                        Toast.makeText(this, "Indexación limpiada — reinicia la app", Toast.LENGTH_SHORT).show();
                     })
                     .setNegativeButton("Cancelar", null)
                     .show()
