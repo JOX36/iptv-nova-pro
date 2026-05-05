@@ -408,6 +408,39 @@
 
     </LinearLayout>
 
+    <!-- Overlay título canal — aparece al cambiar canal -->
+    <LinearLayout
+        android:id="@+id/channel_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:orientation="vertical"
+        android:background="#CC000000"
+        android:padding="16dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/overlay_channel_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:shadowColor="@color/accent"
+            android:shadowDx="0"
+            android:shadowDy="0"
+            android:shadowRadius="8"/>
+
+        <TextView
+            android:id="@+id/overlay_epg_now"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="12sp"
+            android:textColor="#00D4FF"
+            android:layout_marginTop="4dp"/>
+
+    </LinearLayout>
+
     <!-- Overlay bloqueo — fondo semitransparente -->
     <View
         android:id="@+id/lock_overlay"
