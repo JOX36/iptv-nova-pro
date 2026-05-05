@@ -79,6 +79,10 @@ public class PlayerActivity extends AppCompatActivity {
     private ProgressBar gestureProgress;
     private TextView gestureLabel;
 
+    // Overlay título canal
+    private View channelOverlay;
+    private TextView overlayChannelName, overlayEpgNow;
+
     // Bloqueo
     private boolean screenLocked = false;
     private View lockOverlay;
@@ -276,6 +280,11 @@ public class PlayerActivity extends AppCompatActivity {
         gestureIcon      = findViewById(R.id.gesture_icon);
         gestureProgress  = findViewById(R.id.gesture_progress);
         gestureLabel     = findViewById(R.id.gesture_label);
+
+        // Channel overlay
+        channelOverlay    = findViewById(R.id.channel_overlay);
+        overlayChannelName = findViewById(R.id.overlay_channel_name);
+        overlayEpgNow     = findViewById(R.id.overlay_epg_now);
 
         // Lock overlay
         lockOverlay = findViewById(R.id.lock_overlay);
@@ -724,6 +733,7 @@ public class PlayerActivity extends AppCompatActivity {
         tvResolution.setVisibility(View.GONE);
         updateFavBtn();
         isInPip = false;
+        showChannelOverlay();
         playerView.animate().alpha(0f).setDuration(150).withEndAction(() -> {
             initPlayer();
             playerView.animate().alpha(1f).setDuration(300).start();
@@ -814,6 +824,23 @@ public class PlayerActivity extends AppCompatActivity {
     private void saveProgress() {
         if (player != null && item != null && !item.type.equals(MediaItem.LIVE))
             prefs.saveProgress(item.id, player.getCurrentPosition(), player.getDuration());
+    }
+
+    private void showChannelOverlay() {
+        if (channelOverlay == null || overlayChannelName == null) return;
+        overlayChannelName.setText(item.name);
+        if (overlayEpgNow != null) overlayEpgNow.setText("");
+        channelOverlay.setVisibility(View.VISIBLE);
+        channelOverlay.setAlpha(0f);
+        channelOverlay.animate().alpha(1f).setDuration(300).start();
+        handler.postDelayed(() -> {
+            if (channelOverlay != null)
+                channelOverlay.animate().alpha(0f).setDuration(500)
+                    .withEndAction(() -> {
+                        if (channelOverlay != null)
+                            channelOverlay.setVisibility(View.GONE);
+                    }).start();
+        }, 3000);
     }
 
     private final Runnable hideUnlockRunnable = () -> {
