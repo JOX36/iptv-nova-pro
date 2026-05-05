@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.jox3.tv.model.Account;
+import com.jox3.tv.model.Category;
 import com.jox3.tv.model.MediaItem;
 
 import java.util.ArrayList;
@@ -97,6 +98,33 @@ public class AppPrefs {
     public int progressPct(String id) {
         long d = getDur(id);
         return d > 0 ? (int)(getPos(id) * 100 / d) : 0;
+    }
+
+    // ── Caché de indexación completa ──
+    public void saveIndex(String type, List<Category> cats) {
+        try {
+            sp.edit().putString("idx_" + type, gson.toJson(cats)).apply();
+        } catch (Exception ignored) {}
+    }
+
+    public List<Category> loadIndex(String type) {
+        try {
+            String json = sp.getString("idx_" + type, null);
+            if (json == null) return new ArrayList<>();
+            return gson.fromJson(json, new TypeToken<List<Category>>(){}.getType());
+        } catch (Exception e) { return new ArrayList<>(); }
+    }
+
+    public void clearIndex() {
+        sp.edit()
+            .remove("idx_live")
+            .remove("idx_vod")
+            .remove("idx_series")
+            .apply();
+    }
+
+    public boolean hasIndex(String type) {
+        return sp.contains("idx_" + type);
     }
 
     // ── Caché Home — para mostrar contenido instantáneamente ──
