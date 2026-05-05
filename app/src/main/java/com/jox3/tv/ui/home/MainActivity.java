@@ -34,6 +34,7 @@ import com.jox3.tv.ui.player.PlayerActivity;
 import com.jox3.tv.ui.setup.LoginActivity;
 import com.jox3.tv.util.AppPrefs;
 import com.jox3.tv.util.AppState;
+import com.jox3.tv.util.SkeletonHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -68,6 +69,15 @@ public class MainActivity extends BaseActivity {
     private LinearLayout sectionVod, rowVod;
     private LinearLayout sectionSeries, rowSeries;
     private View homeEmpty;
+    // Banner
+    private View bannerContainer;
+    private android.widget.ImageView bannerImage;
+    private TextView bannerTitle, bannerGenre;
+    private View bannerPlay;
+    private android.widget.LinearLayout bannerDots;
+    private List<MediaItem> bannerItems = new ArrayList<>();
+    private int bannerIdx = 0;
+    private final Runnable bannerRunnable = this::nextBanner;
 
     private AppPrefs prefs;
     private AppState state;
@@ -85,6 +95,7 @@ public class MainActivity extends BaseActivity {
         state = AppState.get();
         if (state.account == null) { goLogin(); return; }
         initViews();
+        loadIndexCache(); // Cargar caché instantáneamente
         showHome();
         startIndexing();
     }
@@ -126,12 +137,28 @@ public class MainActivity extends BaseActivity {
                 isHomeMode = false; hideHome(); switchType(MediaItem.VOD);
                 ((BottomNavigationView) findViewById(R.id.bottom_nav)).setSelectedItemId(R.id.nav_vod);
             });
+            bannerContainer = homeView.findViewById(R.id.banner_container);
+            bannerImage     = homeView.findViewById(R.id.banner_image);
+            bannerTitle     = homeView.findViewById(R.id.banner_title);
+            bannerGenre     = homeView.findViewById(R.id.banner_genre);
+            bannerPlay      = homeView.findViewById(R.id.banner_play);
+            bannerDots      = homeView.findViewById(R.id.banner_dots);
+
             homeView.findViewById(R.id.tv_series_more).setOnClickListener(v -> {
                 isHomeMode = false; hideHome(); switchType(MediaItem.SERIES);
                 ((BottomNavigationView) findViewById(R.id.bottom_nav)).setSelectedItemId(R.id.nav_series);
             });
         }
         homeView.setVisibility(View.VISIBLE);
+        // Mostrar skeletons mientras carga
+        if (rowVod != null && rowVod.getChildCount() == 0) {
+            sectionVod.setVisibility(View.VISIBLE);
+            SkeletonHelper.showSkeletons(rowVod, 5);
+        }
+        if (rowSeries != null && rowSeries.getChildCount() == 0) {
+            sectionSeries.setVisibility(View.VISIBLE);
+            SkeletonHelper.showSkeletons(rowSeries, 5);
+        }
         refreshHome();
         loadHomeContent();
     }
@@ -173,6 +200,10 @@ public class MainActivity extends BaseActivity {
             prefs.saveCachedHome("live", show);
         }
 
+        // Limpiar skeletons antes de poner contenido real
+        if (rowVod != null) SkeletonHelper.clearSkeletons(rowVod);
+        if (rowSeries != null) SkeletonHelper.clearSkeletons(rowSeries);
+
         // VOD desde caché o memoria
         List<MediaItem> vodItems = new ArrayList<>();
         for (Category c : state.vodCats)
@@ -185,6 +216,22 @@ public class MainActivity extends BaseActivity {
             List<MediaItem> show = vodItems.subList(0, Math.min(15, vodItems.size()));
             for (MediaItem m : show) addVodCard(rowVod, m, false, false);
             prefs.saveCachedHome("vod", show);
+        }
+
+        // Banner — usar VOD o Series con mejor rating
+        if (bannerContainer != null) {
+            List<MediaItem> bItems = new ArrayList<>();
+            for (com.jox3.tv.model.Category cat : state.vodCats)
+                if (cat.loaded && !cat.items.isEmpty()) { bItems.addAll(cat.items.subList(0, Math.min(5, cat.items.size()))); break; }
+            if (bItems.isEmpty()) for (com.jox3.tv.model.Category cat : state.seriesCats)
+                if (cat.loaded && !cat.items.isEmpty()) { bItems.addAll(cat.items.subList(0, Math.min(5, cat.items.size()))); break; }
+            if (!bItems.isEmpty()) {
+                bannerItems = bItems;
+                bannerIdx = 0;
+                updateBanner();
+                mainHandler.removeCallbacks(bannerRunnable);
+                mainHandler.postDelayed(bannerRunnable, 5000);
+            }
         }
 
         // Series desde caché o memoria
@@ -232,6 +279,44 @@ public class MainActivity extends BaseActivity {
                 });
             } catch (Exception ignored) {}
         });
+    }
+
+    private void updateBanner() {
+        if (bannerItems.isEmpty() || bannerContainer == null) return;
+        MediaItem m = bannerItems.get(bannerIdx);
+        bannerContainer.setVisibility(View.VISIBLE);
+        if (bannerTitle != null) bannerTitle.setText(m.name);
+        if (bannerGenre != null) bannerGenre.setText(m.genre != null && !m.genre.isEmpty() ? m.genre : "");
+        if (bannerImage != null && m.thumb() != null && !m.thumb().isEmpty())
+            Glide.with(this).load(m.thumb()).centerCrop().into(bannerImage);
+        if (bannerPlay != null) bannerPlay.setOnClickListener(v -> openItem(m));
+
+        // Dots
+        if (bannerDots != null) {
+            bannerDots.removeAllViews();
+            for (int i = 0; i < bannerItems.size(); i++) {
+                View dot = new View(this);
+                android.widget.LinearLayout.LayoutParams lp =
+                    new android.widget.LinearLayout.LayoutParams(
+                        i == bannerIdx ? 16 : 6, 6);
+                lp.setMargins(3, 0, 3, 0);
+                dot.setLayoutParams(lp);
+                dot.setBackgroundColor(i == bannerIdx ? 0xFF00D4FF : 0x66FFFFFF);
+                bannerDots.addView(dot);
+            }
+        }
+    }
+
+    private void nextBanner() {
+        if (bannerItems.isEmpty()) return;
+        bannerIdx = (bannerIdx + 1) % bannerItems.size();
+        if (bannerImage != null) {
+            bannerImage.animate().alpha(0f).setDuration(300).withEndAction(() -> {
+                updateBanner();
+                bannerImage.animate().alpha(1f).setDuration(300).start();
+            }).start();
+        }
+        mainHandler.postDelayed(bannerRunnable, 5000);
     }
 
     private void addChannelCard(LinearLayout row, MediaItem m) {
@@ -300,6 +385,22 @@ public class MainActivity extends BaseActivity {
     }
 
     // ── BÚSQUEDA — solo en lo cargado ──
+    private void loadIndexCache() {
+        // Cargar categorías e items desde caché guardado en disco
+        if (state.liveCats.isEmpty()) {
+            List<com.jox3.tv.model.Category> cached = prefs.loadIndex("live");
+            if (!cached.isEmpty()) state.liveCats.addAll(cached);
+        }
+        if (state.vodCats.isEmpty()) {
+            List<com.jox3.tv.model.Category> cached = prefs.loadIndex("vod");
+            if (!cached.isEmpty()) state.vodCats.addAll(cached);
+        }
+        if (state.seriesCats.isEmpty()) {
+            List<com.jox3.tv.model.Category> cached = prefs.loadIndex("series");
+            if (!cached.isEmpty()) state.seriesCats.addAll(cached);
+        }
+    }
+
     private void startIndexing() {
         if (indexingStarted) return;
         indexingStarted = true;
@@ -369,6 +470,11 @@ public class MainActivity extends BaseActivity {
                 pool.shutdown();
                 pool.awaitTermination(5, java.util.concurrent.TimeUnit.MINUTES);
 
+                // Guardar caché en disco
+                prefs.saveIndex("live",   state.liveCats);
+                prefs.saveIndex("vod",    state.vodCats);
+                prefs.saveIndex("series", state.seriesCats);
+
                 // Indexación completa
                 mainHandler.post(() -> {
                     View bar = findViewById(R.id.layout_index_progress);
@@ -406,6 +512,34 @@ public class MainActivity extends BaseActivity {
                 status.setText("TV:" + lv + " VOD:" + vd + " Series:" + sr);
             }
         });
+    }
+
+    private void startVoiceSearch() {
+        try {
+            android.speech.RecognizerIntent intent = null;
+            Intent voiceIntent = new Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+            voiceIntent.putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+            voiceIntent.putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, "Buscar...");
+            voiceIntent.putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE, "es-ES");
+            startActivityForResult(voiceIntent, 9001);
+        } catch (Exception e) {
+            Toast.makeText(this, "Reconocimiento de voz no disponible", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 9001 && resultCode == RESULT_OK && data != null) {
+            List<String> results = data.getStringArrayListExtra(
+                android.speech.RecognizerIntent.EXTRA_RESULTS);
+            if (results != null && !results.isEmpty()) {
+                String query = results.get(0);
+                etSearch.setText(query);
+                doSearch(query);
+            }
+        }
     }
 
     private void doSearch(String q) {
@@ -453,6 +587,10 @@ public class MainActivity extends BaseActivity {
 
         tvAccount.setText(state.account.displayHost());
         tvAccount.setOnClickListener(v -> goLogin());
+
+        // Micrófono para búsqueda por voz
+        View btnVoice = findViewById(R.id.btn_voice);
+        if (btnVoice != null) btnVoice.setOnClickListener(v -> startVoiceSearch());
 
         View btnSettings = findViewById(R.id.btn_settings);
         if (btnSettings != null)
