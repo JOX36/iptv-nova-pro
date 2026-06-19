@@ -50,10 +50,9 @@ import java.util.List;
 public class PlayerActivity extends AppCompatActivity {
 
     public static volatile boolean requestClose = false;
-
-    public static final String EXTRA_URL   = "extra_url";
+    public static final String EXTRA_URL = "extra_url";
     public static final String EXTRA_TITLE = "extra_title";
-    public static final String EXTRA_TYPE  = "extra_type";
+    public static final String EXTRA_TYPE = "extra_type";
 
     private ExoPlayer player;
     private PlayerView playerView;
@@ -61,30 +60,24 @@ public class PlayerActivity extends AppCompatActivity {
     private LinearLayout layoutSeek, layoutLiveBtns, layoutVodBtns;
     private TextView tvName, tvResolution, tvStatus, btnBack, btnFav;
 
-    // Live buttons
     private Button btnPrev, btnNext, btnPipLive, btnStop;
 
-    // VOD/Series buttons
     private Button btnPlayPause, btnRewind, btnForward;
     private Button btnAudio, btnSubs, btnPip, btnStopVod;
     private Button btnSpeed, btnLock, btnPrevEp, btnNextEp;
 
-    // Seek
     private SeekBar seekBar;
     private TextView tvPosition, tvDuration;
 
-    // Indicador visual gesto
     private LinearLayout gestureIndicator;
     private ImageView gestureIcon;
     private ProgressBar gestureProgress;
     private TextView gestureLabel;
 
-    // Bloqueo
     private boolean screenLocked = false;
     private View lockOverlay;
     private TextView btnUnlock;
 
-    // Auto-next episode
     private List<com.jox3.tv.model.EpgProgram> episodeList = null;
     private int currentEpisodeIdx = -1;
     private View nextEpisodePanel;
@@ -96,6 +89,7 @@ public class PlayerActivity extends AppCompatActivity {
     private AppPrefs prefs;
     private AppState state;
     private final Handler handler = new Handler(Looper.getMainLooper());
+
     private boolean barsVisible = false;
     private boolean isTv = false;
     private boolean isInPip = false;
@@ -110,6 +104,7 @@ public class PlayerActivity extends AppCompatActivity {
     private int gestStartVol;
     private float gestStartBright;
     private long seekStartPos;
+    private static final int TOUCH_SLOP_PX = 24;
 
     private BroadcastReceiver pipCloseReceiver;
 
@@ -144,21 +139,19 @@ public class PlayerActivity extends AppCompatActivity {
         state = AppState.get();
         audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
         isTv = getPackageManager().hasSystemFeature(
-            android.content.pm.PackageManager.FEATURE_LEANBACK);
+                android.content.pm.PackageManager.FEATURE_LEANBACK);
 
         item = (MediaItem) getIntent().getSerializableExtra("item");
-
         if (item == null) {
-            String url   = getIntent().getStringExtra(EXTRA_URL);
+            String url = getIntent().getStringExtra(EXTRA_URL);
             String title = getIntent().getStringExtra(EXTRA_TITLE);
-            String type  = getIntent().getStringExtra(EXTRA_TYPE);
+            String type = getIntent().getStringExtra(EXTRA_TYPE);
             if (url != null) {
                 String itemType = "live".equals(type) ? MediaItem.LIVE :
-                                  "series".equals(type) ? MediaItem.SERIES : MediaItem.VOD;
+                        "series".equals(type) ? MediaItem.SERIES : MediaItem.VOD;
                 item = new MediaItem("0", title != null ? title : "", "", url, "", itemType);
             }
         }
-
         if (item == null) { finish(); return; }
 
         if (item.type.equals(MediaItem.SERIES)) {
@@ -174,7 +167,7 @@ public class PlayerActivity extends AppCompatActivity {
         };
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(pipCloseReceiver,
-                new IntentFilter("com.jox3.tv.CLOSE_PIP"), Context.RECEIVER_NOT_EXPORTED);
+                    new IntentFilter("com.jox3.tv.CLOSE_PIP"), Context.RECEIVER_NOT_EXPORTED);
         } else {
             registerReceiver(pipCloseReceiver, new IntentFilter("com.jox3.tv.CLOSE_PIP"));
         }
@@ -203,21 +196,22 @@ public class PlayerActivity extends AppCompatActivity {
 
     private void setFullscreen() {
         getWindow().addFlags(
-            WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON |
-            WindowManager.LayoutParams.FLAG_FULLSCREEN |
-            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
+                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON |
+                WindowManager.LayoutParams.FLAG_FULLSCREEN |
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             getWindow().setDecorFitsSystemWindows(false);
         } else {
             int flags = View.SYSTEM_UI_FLAG_FULLSCREEN
-                | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                | View.SYSTEM_UI_FLAG_LAYOUT_STABLE;
+                    | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                    | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_LAYOUT_STABLE;
             getWindow().getDecorView().setSystemUiVisibility(flags);
             getWindow().getDecorView().setOnSystemUiVisibilityChangeListener(
-                v -> { if ((v & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0) setFullscreen(); });
+                    v -> { if ((v & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0) setFullscreen(); });
         }
     }
 
@@ -226,60 +220,56 @@ public class PlayerActivity extends AppCompatActivity {
             android.view.WindowInsetsController wic = getWindow().getInsetsController();
             if (wic != null) {
                 wic.hide(android.view.WindowInsets.Type.statusBars() |
-                         android.view.WindowInsets.Type.navigationBars());
+                        android.view.WindowInsets.Type.navigationBars());
                 wic.setSystemBarsBehavior(
-                    android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                        android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
             }
         }
     }
 
     @SuppressLint("ClickableViewAccessibility")
     private void initViews() {
-        playerView      = findViewById(R.id.player_view);
-        topBar          = findViewById(R.id.top_bar);
-        bottomBar       = findViewById(R.id.bottom_bar);
-        tvName          = findViewById(R.id.tv_name);
-        tvResolution    = findViewById(R.id.tv_resolution);
-        tvStatus        = findViewById(R.id.tv_status);
-        btnBack         = findViewById(R.id.btn_back);
-        btnFav          = findViewById(R.id.btn_fav);
-        layoutSeek      = findViewById(R.id.layout_seek);
-        layoutLiveBtns  = findViewById(R.id.layout_live_btns);
-        layoutVodBtns   = findViewById(R.id.layout_vod_btns);
+        playerView = findViewById(R.id.player_view);
+        topBar = findViewById(R.id.top_bar);
+        bottomBar = findViewById(R.id.bottom_bar);
+        tvName = findViewById(R.id.tv_name);
+        tvResolution = findViewById(R.id.tv_resolution);
+        tvStatus = findViewById(R.id.tv_status);
+        btnBack = findViewById(R.id.btn_back);
+        btnFav = findViewById(R.id.btn_fav);
 
-        // Live
-        btnPrev     = findViewById(R.id.btn_prev);
-        btnNext     = findViewById(R.id.btn_next);
-        btnPipLive  = findViewById(R.id.btn_pip_live);
-        btnStop     = findViewById(R.id.btn_stop);
+        layoutSeek = findViewById(R.id.layout_seek);
+        layoutLiveBtns = findViewById(R.id.layout_live_btns);
+        layoutVodBtns = findViewById(R.id.layout_vod_btns);
 
-        // VOD
+        btnPrev = findViewById(R.id.btn_prev);
+        btnNext = findViewById(R.id.btn_next);
+        btnPipLive = findViewById(R.id.btn_pip_live);
+        btnStop = findViewById(R.id.btn_stop);
+
         btnPlayPause = findViewById(R.id.btn_play_pause);
-        btnRewind    = findViewById(R.id.btn_rewind);
-        btnForward   = findViewById(R.id.btn_forward);
-        btnAudio     = findViewById(R.id.btn_audio);
-        btnSubs      = findViewById(R.id.btn_subs);
-        btnPip       = findViewById(R.id.btn_pip);
-        btnStopVod   = findViewById(R.id.btn_stop_vod);
-        btnSpeed     = findViewById(R.id.btn_speed);
-        btnLock      = findViewById(R.id.btn_lock);
-        btnPrevEp    = findViewById(R.id.btn_prev_ep);
-        btnNextEp    = findViewById(R.id.btn_next_ep);
+        btnRewind = findViewById(R.id.btn_rewind);
+        btnForward = findViewById(R.id.btn_forward);
+        btnAudio = findViewById(R.id.btn_audio);
+        btnSubs = findViewById(R.id.btn_subs);
+        btnPip = findViewById(R.id.btn_pip);
+        btnStopVod = findViewById(R.id.btn_stop_vod);
+        btnSpeed = findViewById(R.id.btn_speed);
+        btnLock = findViewById(R.id.btn_lock);
+        btnPrevEp = findViewById(R.id.btn_prev_ep);
+        btnNextEp = findViewById(R.id.btn_next_ep);
 
-        // Seek
-        seekBar    = findViewById(R.id.seek_bar);
+        seekBar = findViewById(R.id.seek_bar);
         tvPosition = findViewById(R.id.tv_position);
         tvDuration = findViewById(R.id.tv_duration);
 
-        // Indicador gesto
         gestureIndicator = findViewById(R.id.gesture_indicator);
-        gestureIcon      = findViewById(R.id.gesture_icon);
-        gestureProgress  = findViewById(R.id.gesture_progress);
-        gestureLabel     = findViewById(R.id.gesture_label);
+        gestureIcon = findViewById(R.id.gesture_icon);
+        gestureProgress = findViewById(R.id.gesture_progress);
+        gestureLabel = findViewById(R.id.gesture_label);
 
-        // Lock overlay
         lockOverlay = findViewById(R.id.lock_overlay);
-        btnUnlock   = findViewById(R.id.btn_unlock);
+        btnUnlock = findViewById(R.id.btn_unlock);
         if (lockOverlay != null) {
             lockOverlay.setOnClickListener(v -> {
                 if (!screenLocked) return;
@@ -291,9 +281,7 @@ public class PlayerActivity extends AppCompatActivity {
             });
         }
 
-
-        // Panel siguiente episodio
-        nextEpisodePanel  = findViewById(R.id.next_episode_panel);
+        nextEpisodePanel = findViewById(R.id.next_episode_panel);
         tvNextEpisodeTitle = findViewById(R.id.tv_next_episode_title);
 
         playerView.setPadding(0, 0, 0, 0);
@@ -303,13 +291,11 @@ public class PlayerActivity extends AppCompatActivity {
         btnBack.setOnClickListener(v -> exitPlayer());
         btnFav.setOnClickListener(v -> { prefs.toggleFav(item.favKey()); updateFavBtn(); });
 
-        // Live
         btnPrev.setOnClickListener(v -> navigateChannel(-1));
         btnNext.setOnClickListener(v -> navigateChannel(1));
         btnPipLive.setOnClickListener(v -> enterPip());
         btnStop.setOnClickListener(v -> exitPlayer());
 
-        // VOD
         btnPlayPause.setOnClickListener(v -> togglePlayPause());
         btnRewind.setOnClickListener(v -> {
             if (player != null)
@@ -318,24 +304,18 @@ public class PlayerActivity extends AppCompatActivity {
         btnForward.setOnClickListener(v -> {
             if (player != null)
                 player.seekTo(Math.min(player.getDuration(),
-                    player.getCurrentPosition() + 10000));
+                        player.getCurrentPosition() + 10000));
         });
         btnAudio.setOnClickListener(v -> showAudioTracks());
         btnSubs.setOnClickListener(v -> showSubtitleTracks());
         btnPip.setOnClickListener(v -> enterPip());
         btnStopVod.setOnClickListener(v -> exitPlayer());
 
-        // Velocidad
-        if (btnSpeed  != null) btnSpeed.setOnClickListener(v -> showSpeedDialog());
-
-        // Episodios anterior/siguiente
+        if (btnSpeed != null) btnSpeed.setOnClickListener(v -> showSpeedDialog());
         if (btnPrevEp != null) btnPrevEp.setOnClickListener(v -> navigateEpisode(-1));
         if (btnNextEp != null) btnNextEp.setOnClickListener(v -> navigateEpisode(1));
-
-        // Bloqueo
         if (btnLock != null) btnLock.setOnClickListener(v -> toggleLock());
 
-        // SeekBar
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override public void onProgressChanged(SeekBar sb, int p, boolean fromUser) {
                 if (fromUser && player != null)
@@ -365,48 +345,47 @@ public class PlayerActivity extends AppCompatActivity {
     private void setupButtonsForType() {
         boolean isLive = item.type.equals(MediaItem.LIVE);
         playerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FILL);
+
         layoutLiveBtns.setVisibility(isLive ? View.VISIBLE : View.GONE);
         layoutVodBtns.setVisibility(isLive ? View.GONE : View.VISIBLE);
         layoutSeek.setVisibility(isLive ? View.GONE : View.VISIBLE);
-        // Velocidad y bloqueo solo en VOD/Series
-        if (btnSpeed  != null) btnSpeed.setVisibility(isLive ? View.GONE : View.VISIBLE);
-        if (btnLock   != null) btnLock.setVisibility(View.VISIBLE);
-        // Botones episodios solo si hay cola de episodios
+
+        if (btnSpeed != null) btnSpeed.setVisibility(isLive ? View.GONE : View.VISIBLE);
+        if (btnLock != null) btnLock.setVisibility(View.VISIBLE);
+
         updateEpisodeNavButtons();
     }
 
-    // ── Velocidad ──
     private void showSpeedDialog() {
         String[] speeds = {"0.5x", "0.75x", "1x (Normal)", "1.25x", "1.5x", "2x"};
-        float[]  vals   = {0.5f,    0.75f,    1.0f,          1.25f,   1.5f,   2.0f};
+        float[] vals = {0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f};
         int current = 2;
         for (int i = 0; i < vals.length; i++)
             if (vals[i] == currentSpeed) { current = i; break; }
 
         new AlertDialog.Builder(this)
-            .setTitle("Velocidad de reproducción")
-            .setSingleChoiceItems(speeds, current, (d, which) -> {
-                currentSpeed = vals[which];
-                if (player != null)
-                    player.setPlaybackSpeed(currentSpeed);
-                if (btnSpeed != null)
-                    btnSpeed.setText(currentSpeed == 1.0f ? "1x" :
-                        speeds[which].replace(" (Normal)", ""));
-                d.dismiss();
-            })
-            .setNegativeButton("Cancelar", null)
-            .show();
+                .setTitle("Velocidad de reproducción")
+                .setSingleChoiceItems(speeds, current, (d, which) -> {
+                    currentSpeed = vals[which];
+                    if (player != null)
+                        player.setPlaybackSpeed(currentSpeed);
+                    if (btnSpeed != null)
+                        btnSpeed.setText(currentSpeed == 1.0f ? "1x" :
+                                speeds[which].replace(" (Normal)", ""));
+                    d.dismiss();
+                })
+                .setNegativeButton("Cancelar", null)
+                .show();
     }
 
-    // ── Bloqueo pantalla ──
     private void toggleLock() {
         screenLocked = !screenLocked;
         if (lockOverlay != null)
             lockOverlay.setVisibility(screenLocked ? View.VISIBLE : View.GONE);
+
         if (btnUnlock != null) {
             btnUnlock.setOnClickListener(v -> toggleLock());
             if (screenLocked) {
-                // Mostrar brevemente y luego ocultar
                 btnUnlock.setVisibility(View.VISIBLE);
                 handler.removeCallbacks(hideUnlockRunnable);
                 handler.postDelayed(hideUnlockRunnable, 2000);
@@ -414,11 +393,12 @@ public class PlayerActivity extends AppCompatActivity {
                 btnUnlock.setVisibility(View.GONE);
             }
         }
+
         if (btnLock != null) {
             btnLock.setText(screenLocked ? "🔒" : "🔓");
         }
+
         if (screenLocked) {
-            // Ocultar TODAS las barras — solo queda visible el botón desbloquear
             topBar.setVisibility(View.GONE);
             bottomBar.setVisibility(View.GONE);
             barsVisible = false;
@@ -429,13 +409,11 @@ public class PlayerActivity extends AppCompatActivity {
         }
     }
 
-    // ── Auto siguiente episodio ──
     public void setEpisodeList(List<MediaItem> episodes, int currentIdx) {
-        this.episodeList = null; // No usar EpgProgram, usar MediaItem directo
+        this.episodeList = null;
         this.currentEpisodeIdx = currentIdx;
-        // Guardar como lista de MediaItem en AppState
         state.episodeQueue = episodes;
-        state.episodeIdx   = currentIdx;
+        state.episodeIdx = currentIdx;
     }
 
     private void navigateEpisode(int dir) {
@@ -468,9 +446,8 @@ public class PlayerActivity extends AppCompatActivity {
         long dur = player.getDuration();
         long pos = player.getCurrentPosition();
         if (dur <= 0) return;
-
         long remaining = dur - pos;
-        // Mostrar panel cuando falte 1 minuto
+
         if (remaining <= 60000 && remaining > 0) {
             nextEpisodeShown = true;
             showNextEpisodePanel();
@@ -482,10 +459,8 @@ public class PlayerActivity extends AppCompatActivity {
         MediaItem next = state.episodeQueue.get(state.episodeIdx + 1);
         if (tvNextEpisodeTitle != null)
             tvNextEpisodeTitle.setText("Siguiente: " + next.name);
-
         nextEpisodePanel.setVisibility(View.VISIBLE);
 
-        // Botón reproducir siguiente
         View btnPlayNext = nextEpisodePanel.findViewById(R.id.btn_play_next);
         View btnSkipNext = nextEpisodePanel.findViewById(R.id.btn_skip_next);
 
@@ -493,13 +468,11 @@ public class PlayerActivity extends AppCompatActivity {
             nextEpisodePanel.setVisibility(View.GONE);
             playNextEpisode(next);
         });
-
         if (btnSkipNext != null) btnSkipNext.setOnClickListener(v -> {
             nextEpisodePanel.setVisibility(View.GONE);
-            // Temporizador de 10 segundos para auto-siguiente
             handler.postDelayed(() -> playNextEpisode(next), 10000);
             Toast.makeText(this, "Reproduciendo siguiente en 10 segundos...",
-                Toast.LENGTH_LONG).show();
+                    Toast.LENGTH_LONG).show();
         });
     }
 
@@ -545,16 +518,19 @@ public class PlayerActivity extends AppCompatActivity {
             return;
         }
 
+        // Desambiguar nombres duplicados agregando un índice (Bug #4)
+        disambiguateNames(names);
+
         new AlertDialog.Builder(this)
-            .setTitle("Seleccionar audio")
-            .setItems(names.toArray(new String[0]), (d, which) -> {
-                player.setTrackSelectionParameters(
-                    player.getTrackSelectionParameters().buildUpon()
-                        .setOverrideForType(new TrackSelectionOverride(groups.get(which), 0))
-                        .build());
-            })
-            .setNegativeButton("Cancelar", null)
-            .show();
+                .setTitle("Seleccionar audio")
+                .setItems(names.toArray(new String[0]), (d, which) -> {
+                    player.setTrackSelectionParameters(
+                            player.getTrackSelectionParameters().buildUpon()
+                                    .setOverrideForType(new TrackSelectionOverride(groups.get(which), 0))
+                                    .build());
+                })
+                .setNegativeButton("Cancelar", null)
+                .show();
     }
 
     private void showSubtitleTracks() {
@@ -581,24 +557,53 @@ public class PlayerActivity extends AppCompatActivity {
             return;
         }
 
+        // Desambiguar nombres duplicados (excepto "Desactivar" en índice 0)
+        disambiguateNamesFrom(names, 1);
+
         new AlertDialog.Builder(this)
-            .setTitle("Subtítulos")
-            .setItems(names.toArray(new String[0]), (d, which) -> {
-                if (which == 0) {
-                    player.setTrackSelectionParameters(
-                        player.getTrackSelectionParameters().buildUpon()
-                            .setDisabledTrackTypes(
-                                com.google.common.collect.ImmutableSet.of(C.TRACK_TYPE_TEXT))
-                            .build());
-                } else {
-                    player.setTrackSelectionParameters(
-                        player.getTrackSelectionParameters().buildUpon()
-                            .setOverrideForType(new TrackSelectionOverride(groups.get(which), 0))
-                            .build());
-                }
-            })
-            .setNegativeButton("Cancelar", null)
-            .show();
+                .setTitle("Subtítulos")
+                .setItems(names.toArray(new String[0]), (d, which) -> {
+                    if (which == 0) {
+                        player.setTrackSelectionParameters(
+                                player.getTrackSelectionParameters().buildUpon()
+                                        .setDisabledTrackTypes(
+                                                com.google.common.collect.ImmutableSet.of(C.TRACK_TYPE_TEXT))
+                                        .build());
+                    } else {
+                        player.setTrackSelectionParameters(
+                                player.getTrackSelectionParameters().buildUpon()
+                                        .setOverrideForType(new TrackSelectionOverride(groups.get(which), 0))
+                                        .build());
+                    }
+                })
+                .setNegativeButton("Cancelar", null)
+                .show();
+    }
+
+    /**
+     * Bug #4 fix: si hay nombres de pista repetidos (p. ej. dos pistas "ES"),
+     * se les agrega un índice " (1)", " (2)" para que el usuario pueda distinguirlas
+     * en el diálogo de selección.
+     */
+    private void disambiguateNames(List<String> names) {
+        disambiguateNamesFrom(names, 0);
+    }
+
+    private void disambiguateNamesFrom(List<String> names, int fromIndex) {
+        java.util.Map<String, Integer> counts = new java.util.HashMap<>();
+        for (int i = fromIndex; i < names.size(); i++) {
+            String n = names.get(i);
+            counts.put(n, counts.getOrDefault(n, 0) + 1);
+        }
+        java.util.Map<String, Integer> seen = new java.util.HashMap<>();
+        for (int i = fromIndex; i < names.size(); i++) {
+            String n = names.get(i);
+            if (counts.get(n) > 1) {
+                int idx = seen.getOrDefault(n, 0) + 1;
+                seen.put(n, idx);
+                names.set(i, n + " (" + idx + ")");
+            }
+        }
     }
 
     private void initPlayer() {
@@ -617,14 +622,14 @@ public class PlayerActivity extends AppCompatActivity {
         androidx.media3.common.MediaItem mi;
         if (url.contains(".m3u8") || url.contains("type=m3u")) {
             mi = new androidx.media3.common.MediaItem.Builder()
-                .setUri(url)
-                .setMimeType(androidx.media3.common.MimeTypes.APPLICATION_M3U8)
-                .build();
+                    .setUri(url)
+                    .setMimeType(androidx.media3.common.MimeTypes.APPLICATION_M3U8)
+                    .build();
         } else if (url.contains(".mkv") || url.contains(".avi") || url.contains(".ts")) {
             mi = new androidx.media3.common.MediaItem.Builder()
-                .setUri(url)
-                .setMimeType("video/x-matroska")
-                .build();
+                    .setUri(url)
+                    .setMimeType("video/x-matroska")
+                    .build();
         } else {
             mi = androidx.media3.common.MediaItem.fromUri(url);
         }
@@ -646,15 +651,15 @@ public class PlayerActivity extends AppCompatActivity {
 
     private void askResume(long savedPos) {
         new AlertDialog.Builder(this)
-            .setTitle("Continuar viendo")
-            .setMessage("¿Deseas continuar desde donde lo dejaste?")
-            .setPositiveButton("Continuar", (d, w) -> {
-                if (player != null) player.seekTo(savedPos);
-            })
-            .setNegativeButton("Desde el inicio", (d, w) ->
-                prefs.saveProgress(item.id, 0, 0))
-            .setCancelable(false)
-            .show();
+                .setTitle("Continuar viendo")
+                .setMessage("¿Deseas continuar desde donde lo dejaste?")
+                .setPositiveButton("Continuar", (d, w) -> {
+                    if (player != null) player.seekTo(savedPos);
+                })
+                .setNegativeButton("Desde el inicio", (d, w) ->
+                        prefs.saveProgress(item.id, 0, 0))
+                .setCancelable(false)
+                .show();
     }
 
     private Player.Listener makeListener() {
@@ -668,12 +673,14 @@ public class PlayerActivity extends AppCompatActivity {
                         handler.post(seekUpdateRunnable);
                 }
                 if (s == Player.STATE_BUFFERING) setStatus("Cargando...");
-                if (s == Player.STATE_ENDED)     handler.removeCallbacks(seekUpdateRunnable);
+                if (s == Player.STATE_ENDED) handler.removeCallbacks(seekUpdateRunnable);
             }
+
             @Override public void onIsPlayingChanged(boolean isPlaying) {
                 if (btnPlayPause != null)
                     btnPlayPause.setText(isPlaying ? "⏸" : "▶");
             }
+
             @Override public void onPlayerError(@NonNull PlaybackException e) {
                 if (item.type.equals(MediaItem.LIVE) && retryCount < 3) {
                     retryCount++;
@@ -681,11 +688,12 @@ public class PlayerActivity extends AppCompatActivity {
                     handler.postDelayed(() -> initPlayer(), 3000);
                 } else setStatus("Error");
             }
+
             @Override public void onVideoSizeChanged(@NonNull VideoSize vs) {
                 if (vs.width > 0 && vs.height > 0) {
                     String q = vs.height >= 2160 ? "4K" :
-                               vs.height >= 1080 ? "FHD" :
-                               vs.height >= 720  ? "HD" : "SD";
+                            vs.height >= 1080 ? "FHD" :
+                            vs.height >= 720 ? "HD" : "SD";
                     runOnUiThread(() -> {
                         tvResolution.setText(vs.width + "x" + vs.height + " " + q);
                         tvResolution.setVisibility(View.VISIBLE);
@@ -710,11 +718,12 @@ public class PlayerActivity extends AppCompatActivity {
         long s = ms / 1000, m = s / 60; s %= 60;
         long h = m / 60; m %= 60;
         return h > 0 ? String.format("%d:%02d:%02d", h, m, s)
-                     : String.format("%d:%02d", m, s);
+                : String.format("%d:%02d", m, s);
     }
 
     private void navigateChannel(int dir) {
-        if (state.channelList.isEmpty() || state.channelIdx < 0) return;
+        // Bug #3 fix: validar null antes de isEmpty() para evitar NPE
+        if (state.channelList == null || state.channelList.isEmpty() || state.channelIdx < 0) return;
         int next = state.channelIdx + dir;
         if (next < 0) next = state.channelList.size() - 1;
         if (next >= state.channelList.size()) next = 0;
@@ -733,7 +742,7 @@ public class PlayerActivity extends AppCompatActivity {
     private void toggleBars() { if (barsVisible) hideBars(); else showBars(); }
 
     private void showBars() {
-        if (screenLocked) return; // No mostrar barras si está bloqueado
+        if (screenLocked) return;
         barsVisible = true;
         topBar.setVisibility(View.VISIBLE);
         bottomBar.setVisibility(View.VISIBLE);
@@ -755,14 +764,13 @@ public class PlayerActivity extends AppCompatActivity {
     private void setStatus(String s) { runOnUiThread(() -> tvStatus.setText(s)); }
     private void updateFavBtn() { btnFav.setText(prefs.isFav(item.favKey()) ? "★" : "☆"); }
 
-    // ── Indicador visual gesto ──
     private void showGestureIndicator(boolean isVolume, int value, int max, String label) {
         if (gestureIndicator == null) return;
         gestureIndicator.setVisibility(View.VISIBLE);
         if (gestureIcon != null)
             gestureIcon.setImageResource(isVolume ?
-                android.R.drawable.ic_lock_silent_mode_off :
-                android.R.drawable.ic_menu_view);
+                    android.R.drawable.ic_lock_silent_mode_off :
+                    android.R.drawable.ic_menu_view);
         if (gestureProgress != null) {
             gestureProgress.setMax(max);
             gestureProgress.setProgress(value);
@@ -783,7 +791,7 @@ public class PlayerActivity extends AppCompatActivity {
                 bottomBar.setVisibility(View.GONE);
                 handler.removeCallbacksAndMessages(null);
                 PictureInPictureParams params = new PictureInPictureParams.Builder()
-                    .setAspectRatio(new Rational(16, 9)).build();
+                        .setAspectRatio(new Rational(16, 9)).build();
                 enterPictureInPictureMode(params);
             } catch (Exception e) {
                 Toast.makeText(this, "PiP no disponible", Toast.LENGTH_SHORT).show();
@@ -827,6 +835,7 @@ public class PlayerActivity extends AppCompatActivity {
         handler.removeCallbacks(pipCheckRunnable);
         handler.removeCallbacksAndMessages(null);
         saveProgress();
+
         if (player != null) {
             player.setPlayWhenReady(false);
             player.stop();
@@ -835,6 +844,7 @@ public class PlayerActivity extends AppCompatActivity {
             player = null;
         }
         if (playerView != null) playerView.setPlayer(null);
+
         if (!isFinishing()) {
             finish();
             overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
@@ -845,30 +855,40 @@ public class PlayerActivity extends AppCompatActivity {
     private boolean onTouch(View v, MotionEvent e) {
         if (isInPip || screenLocked) return false;
         float w = v.getWidth(), h = v.getHeight();
+
         switch (e.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 gestStartX = e.getX(); gestStartY = e.getY();
                 gestActive = false;
-                gestIsVol    = gestStartX < w / 3f;
+                gestIsVol = gestStartX < w / 3f;
                 gestIsBright = gestStartX > w * 2f / 3f;
-                gestIsSeek   = !gestIsVol && !gestIsBright;
+                gestIsSeek = !gestIsVol && !gestIsBright;
                 if (gestIsVol)
                     gestStartVol = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
                 if (gestIsBright) {
                     float b = getWindow().getAttributes().screenBrightness;
                     if (b < 0) try {
                         b = Settings.System.getInt(getContentResolver(),
-                            Settings.System.SCREEN_BRIGHTNESS) / 255f;
+                                Settings.System.SCREEN_BRIGHTNESS) / 255f;
                     } catch (Exception ignored) { b = 0.5f; }
                     gestStartBright = b;
                 }
                 if (gestIsSeek && player != null) seekStartPos = player.getCurrentPosition();
-                break;
+                // Bug #1 fix: no consumir el evento todavía para permitir que
+                // el click se evalúe normalmente si no hay gesto real.
+                return false;
+
             case MotionEvent.ACTION_MOVE:
                 float dx = e.getX() - gestStartX;
                 float dy = e.getY() - gestStartY;
-                if (!gestActive && (Math.abs(dx) > 20 || Math.abs(dy) > 20)) gestActive = true;
-                if (!gestActive) break;
+                // Bug #1 fix: umbral unificado con TOUCH_SLOP_PX, y solo se
+                // marca como gesto "real" (consumiendo el evento) cuando se
+                // supera el umbral, evitando que toques leves disparen un gesto.
+                if (!gestActive && (Math.abs(dx) > TOUCH_SLOP_PX || Math.abs(dy) > TOUCH_SLOP_PX)) {
+                    gestActive = true;
+                }
+                if (!gestActive) return false;
+
                 if (gestIsVol && Math.abs(dy) > Math.abs(dx)) {
                     int max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
                     int vol = Math.max(0, Math.min(max, (int)(gestStartVol - dy / h * max)));
@@ -883,12 +903,29 @@ public class PlayerActivity extends AppCompatActivity {
                     int pct = (int)(bright * 100f);
                     showGestureIndicator(false, pct, 100, "☀️ " + pct + "%");
                 } else if (gestIsSeek && Math.abs(dx) > Math.abs(dy) && player != null
-                           && !item.type.equals(MediaItem.LIVE)) {
+                        && !item.type.equals(MediaItem.LIVE)) {
                     long pos = Math.max(0, Math.min(player.getDuration(),
-                        seekStartPos + (long)(dx / w * 120000)));
+                            seekStartPos + (long)(dx / w * 120000)));
                     player.seekTo(pos);
                 }
-                break;
+                // Si hubo gesto real, consumimos el evento para que no se
+                // dispare además un click al soltar.
+                return true;
+
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_CANCEL:
+                // Bug #2 fix: resetear explícitamente el estado del gesto al
+                // soltar el dedo o si el sistema cancela el touch (notificación,
+                // llamada entrante, etc.), evitando estado "sucio" residual.
+                boolean wasGesture = gestActive;
+                gestActive = false;
+                gestIsVol = false;
+                gestIsBright = false;
+                gestIsSeek = false;
+                // Si fue un gesto real ya consumimos el MOVE; no dejamos que
+                // además se dispare el click. Si no fue gesto, dejamos que
+                // el sistema procese el click normalmente.
+                return wasGesture;
         }
         return false;
     }
@@ -897,6 +934,7 @@ public class PlayerActivity extends AppCompatActivity {
     public boolean dispatchKeyEvent(android.view.KeyEvent e) {
         if (!isTv || e.getAction() != android.view.KeyEvent.ACTION_DOWN)
             return super.dispatchKeyEvent(e);
+
         switch (e.getKeyCode()) {
             case android.view.KeyEvent.KEYCODE_DPAD_CENTER:
             case android.view.KeyEvent.KEYCODE_ENTER:
@@ -912,8 +950,8 @@ public class PlayerActivity extends AppCompatActivity {
                 if (player != null && !item.type.equals(MediaItem.LIVE))
                     player.seekTo(Math.min(player.getDuration(), player.getCurrentPosition() + 10000));
                 else navigateChannel(1); return true;
-            case android.view.KeyEvent.KEYCODE_DPAD_UP:   navigateChannel(-1); return true;
-            case android.view.KeyEvent.KEYCODE_DPAD_DOWN: navigateChannel(1);  return true;
+            case android.view.KeyEvent.KEYCODE_DPAD_UP: navigateChannel(-1); return true;
+            case android.view.KeyEvent.KEYCODE_DPAD_DOWN: navigateChannel(1); return true;
             case android.view.KeyEvent.KEYCODE_BACK:
             case android.view.KeyEvent.KEYCODE_MEDIA_STOP:
                 exitPlayer(); return true;
@@ -924,7 +962,7 @@ public class PlayerActivity extends AppCompatActivity {
     @Override protected void onPause() {
         super.onPause();
         boolean inPipNow = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N
-            && isInPictureInPictureMode();
+                && isInPictureInPictureMode();
         if (!inPipNow && !playerReleased && player != null) player.pause();
     }
 
@@ -951,7 +989,7 @@ public class PlayerActivity extends AppCompatActivity {
 
     @Override public void onBackPressed() {
         boolean inPipNow = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N
-            && isInPictureInPictureMode();
+                && isInPictureInPictureMode();
         if (isInPip || inPipNow) { moveTaskToBack(false); return; }
         exitPlayer();
     }
