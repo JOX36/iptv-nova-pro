@@ -4,12 +4,12 @@ plugins {
 
 android {
     namespace = "com.jox3.tv"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.jox3.tv"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
     }
