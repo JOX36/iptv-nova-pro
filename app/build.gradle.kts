@@ -29,6 +29,26 @@ android {
     }
 }
 
+configurations.all {
+    resolutionStrategy {
+        // Fuerza todas las librerías media3 a la misma versión,
+        // evitando que una dependencia transitiva traiga 1.6.1
+        // y rompa el build exigiendo compileSdk más alto.
+        force(
+            "androidx.media3:media3-exoplayer:1.3.1",
+            "androidx.media3:media3-exoplayer-hls:1.3.1",
+            "androidx.media3:media3-exoplayer-dash:1.3.1",
+            "androidx.media3:media3-ui:1.3.1",
+            "androidx.media3:media3-datasource-okhttp:1.3.1",
+            "androidx.media3:media3-common:1.3.1",
+            "androidx.media3:media3-container:1.3.1",
+            "androidx.media3:media3-datasource:1.3.1",
+            "androidx.media3:media3-decoder:1.3.1",
+            "androidx.media3:media3-database:1.3.1"
+        )
+    }
+}
+
 dependencies {
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.11.0")
